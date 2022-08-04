@@ -2,8 +2,12 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/gofiber/fiber/v2/middleware/timeout"
 	"log"
+	"time"
 )
 
 type Event struct {
@@ -18,17 +22,21 @@ func main() {
 		AppName: "Go-Metr v0.0.0",
 	})
 
+	app.Use(logger.New())
+	app.Use(requestid.New())
+
 	app.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusOK).SendString(app.Config().AppName)
 	})
-	app.Get("/status", healthCheck)
+	app.Get("/status", timeout.New(healthCheck, 5*time.Second))
 	app.Get("/metrics", monitor.New(monitor.Config{Title: "MyService Metrics Page"}))
 
 	eventApp := app.Group("/event")
 	eventApp.Get("", func(ctx *fiber.Ctx) error {
 		return ctx.SendStatus(fiber.StatusForbidden)
 	})
-	eventApp.Post("", createEvent)
+	//TODO вынести таймауты в параметр
+	eventApp.Post("", timeout.New(createEvent, 5*time.Second))
 
 	log.Fatal(app.Listen(":3000"))
 }
