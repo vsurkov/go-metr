@@ -1,22 +1,44 @@
 #https://github.com/rongfengliang/clickhouse-docker-compose
 version: "3"
 services:
-  server:
+  clickhouse-server:
     image: yandex/clickhouse-server
+    labels:
+      NAME: "clickhouse-server"
     ports:
       - "8123:8123"
       - "9000:9000"
       - "9009:9009"
     volumes:
-      - $HOME/github/go-metr/db/ch_data:/var/lib/clickhouse/
-      - $HOME/github/go-metr/db/ch_logs:/var/log/clickhouse-server/
-
+      - ./clickhouse/db/ch_data:/var/lib/clickhouse/
+      - ./clickhouse/db/ch_logs:/var/log/clickhouse-server/
     ulimits:
       nproc: 65535
       nofile:
         soft: 262144
         hard: 262144
-  client:
+  clickhouse-client:
     image: yandex/clickhouse-client
+    labels:
+      NAME: "clickhouse-client"
     command: ['--host', 'server']
 
+  rabbit1:
+    image: rabbitmq:3-management
+    hostname: "rabbit1"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "RABBITCOOKIE"
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    labels:
+      NAME: "rabbitmq1"
+    volumes:
+      - ./rabbitmq/rabbitmq-node-1/data/:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq-node-1/log/:/var/log/rabbitmq
+#      - ./rabbitmq/rabbitmq-node-1/enabled_plugins:/etc/rabbitmq/enabled_plugins
+#      - "./rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro"
+#      - "./autocluster-0.4.1.ez:/usr/lib/rabbitmq/lib/rabbitmq_server-3.5.5/plugins/autocluster-0.4.1.ez"

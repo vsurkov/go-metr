@@ -3,12 +3,11 @@ module github.com/vsurkov/go-metr
 go 1.18
 
 require (
+	github.com/ClickHouse/clickhouse-go/v2 v2.2.0
 	github.com/gofiber/fiber/v2 v2.36.0
-	github.com/mackerelio/go-osstat v0.2.2
 )
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.2.0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.15.0 // indirect

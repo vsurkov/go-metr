@@ -155,3 +155,12 @@ func initDB() error {
 	}
 	return err
 }
+
+//func createTables() error {
+//	//CREATE TABLE IF NOT EXISTS projects (
+//	//	date_add DateTime,
+//	//	project_name String,
+//	//	project_uuid String,
+//	//	ovner String
+//	//) engine=Log
+//}
