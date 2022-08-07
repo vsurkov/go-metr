@@ -9,17 +9,19 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/google/uuid"
 	"log"
 	"time"
 )
 
 type Event struct {
-	Date      time.Time
-	SourceIP  string
-	SessionID string
-	Project   string
-	Page      string
-	LoadTime  int64
+	Date         time.Time `json:"date"`
+	SystemId     uuid.UUID `json:"systemId"`
+	SessionId    uuid.UUID `json:"sessionId"`
+	TotalLoading float64   `json:"totalLoading"`
+	DomLoading   float64   `json:"domLoading"`
+	Uri          string    `json:"uri"`
+	UserAgent    string    `json:"userAgent"`
 }
 
 var (
@@ -36,7 +38,7 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		//TODO билдить релиз
-		AppName: "Go-Metr v0.0.0",
+		AppName: "go-metr v0.0.0",
 	})
 
 	app.Use(logger.New())
@@ -46,12 +48,13 @@ func main() {
 		return ctx.Status(fiber.StatusOK).SendString(app.Config().AppName)
 	})
 	app.Get("/status", healthCheck)
-	app.Get("/metrics", monitor.New(monitor.Config{Title: "MyService Metrics Page"}))
+	app.Get("/metrics", monitor.New(monitor.Config{Title: "Metrics"}))
 
 	eventApp := app.Group("/event")
 	eventApp.Get("", func(ctx *fiber.Ctx) error {
 		return ctx.SendStatus(fiber.StatusForbidden)
 	})
+
 	//TODO добавить таймауты и вынести в параметр
 	eventApp.Post("", createEvent)
 
@@ -77,13 +80,17 @@ func createEvent(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
-	insertQuery := fmt.Sprintf(`INSERT INTO events (date, source, sessionid, project, page, loadtime) 
-		VALUES ('%v','127.0.0.1', '%v', '%v', '%v', %v)`,
+	// TODO нужны валидаторы!
+
+	insertQuery := fmt.Sprintf("INSERT INTO events (date, systemId, sessionId, totalLoading, domLoading, uri, userAgent) VALUES ('%v', '%v', '%v', '%v', '%v', '%v', '%v')",
+
 		time.Now().Format("20060102150405"),
-		body.SessionID,
-		body.Project,
-		body.Page,
-		body.LoadTime)
+		body.SystemId,
+		body.SessionId,
+		body.TotalLoading,
+		body.DomLoading,
+		body.Uri,
+		body.UserAgent)
 
 	err = dbConn.Exec(dbCtx, insertQuery)
 
@@ -142,11 +149,12 @@ func initDB() error {
 	err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS events (
 			date DateTime,
-			source String,
-			sessionid String,
-			project String,
-			page String,
-			loadtime UInt64
+			systemId UUID,
+			sessionId UUID,
+			totalLoading Float64,
+			domLoading Float64,
+			uri String,			
+			userAgent String
 		) engine=Log
 	`)
 
