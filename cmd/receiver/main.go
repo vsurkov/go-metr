@@ -82,20 +82,28 @@ func createEvent(ctx *fiber.Ctx) error {
 
 	// TODO нужны валидаторы!
 
-	insertQuery := fmt.Sprintf("INSERT INTO events (date, systemId, sessionId, totalLoading, domLoading, uri, userAgent) VALUES ('%v', '%v', '%v', '%v', '%v', '%v', '%v')",
-
-		time.Now().Format("20060102150405"),
-		body.SystemId,
-		body.SessionId,
-		body.TotalLoading,
-		body.DomLoading,
-		body.Uri,
-		body.UserAgent)
-
-	err = dbConn.Exec(dbCtx, insertQuery)
+	selectQuery := fmt.Sprintf("SELECT systemName FROM systems WHERE systemId = '%v'", body.SystemId)
+	rows, err := dbConn.Query(dbCtx, selectQuery)
 
 	if err != nil {
 		return err
+	}
+
+	if !rows.Next() {
+		return ctx.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("systemId: %v not found", body.SystemId))
+	}
+
+	for rows.Next() {
+		var (
+			systemName string
+		)
+		if err := rows.Scan(&systemName); err != nil {
+			return err
+		}
+	}
+	err = rows.Close()
+	if err != nil {
+		return rows.Err()
 	}
 
 	return ctx.SendStatus(fiber.StatusOK)
@@ -103,6 +111,15 @@ func createEvent(ctx *fiber.Ctx) error {
 
 // TODO реализовать самодиагностику, посмотри на https://github.com/mackerelio/go-osstat
 func healthCheck(ctx *fiber.Ctx) error {
+
+	// Проверка доступности Clickhouse - без базы не сможем принимать метрики (проверка на наличие проекта)
+	if err := dbConn.Ping(dbCtx); err != nil {
+		if exception, ok := err.(*clickhouse.Exception); ok {
+			log.Printf("Catch exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
+		}
+		return ctx.Status(fiber.StatusInternalServerError).SendString("ERROR")
+	}
+
 	return ctx.Status(fiber.StatusOK).SendString("OK")
 }
 
@@ -165,10 +182,8 @@ func initDB() error {
 }
 
 //func createTables() error {
-//	//CREATE TABLE IF NOT EXISTS projects (
-//	//	date_add DateTime,
-//	//	project_name String,
-//	//	project_uuid String,
-//	//	ovner String
+//	//CREATE TABLE IF NOT EXISTS systems (
+//	//	systemId UUID,
+//	//	systemName String
 //	//) engine=Log
 //}
