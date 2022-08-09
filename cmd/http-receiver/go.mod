@@ -5,11 +5,12 @@ go 1.18
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.2.0
 	github.com/gofiber/fiber/v2 v2.36.0
+	github.com/google/uuid v1.3.0
+	github.com/streadway/amqp v1.0.0
 )
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.15.0 // indirect
 	github.com/paulmach/orb v0.7.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
