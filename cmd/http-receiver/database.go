@@ -6,7 +6,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/compress"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"github.com/google/uuid"
 	"log"
 	"time"
 )
@@ -62,9 +61,7 @@ func (db Database) Connect(c dbConfig) (*Database, error) {
 	ctx := clickhouse.Context(context.Background(), clickhouse.WithSettings(clickhouse.Settings{
 		"max_block_size": 10,
 	}), clickhouse.WithProgress(func(p *clickhouse.Progress) {
-		log.Println("progress: ", p)
 	}), clickhouse.WithProfileInfo(func(p *clickhouse.ProfileInfo) {
-		log.Println("profile info: ", p)
 	}))
 	if err := conn.Ping(ctx); err != nil {
 		if exception, ok := err.(*clickhouse.Exception); ok {
@@ -78,13 +75,13 @@ func (db Database) Connect(c dbConfig) (*Database, error) {
 	}
 	err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS events (
-			date DateTime,
-			systemId UUID,
-			sessionId UUID,
-			totalLoading Float64,
-			domLoading Float64,
-			uri String,			
-			userAgent String
+			Date DateTime,
+			SystemId UUID,
+			SessionId UUID,
+			TotalLoading Float64,
+			DomLoading Float64,
+			Uri String,			
+			UserAgent String
 		) engine=Log
 	`)
 
@@ -97,40 +94,22 @@ func (db Database) Connect(c dbConfig) (*Database, error) {
 	}, err
 }
 
-func (db Database) HasSystem(id uuid.UUID) (bool, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("HasSystem verify catch Panic()")
-		}
-	}()
+func (db Database) GetSystems() (map[string]string, error) {
+	var result []struct {
+		SystemId   string
+		SystemName string
+	}
+	mp := make(map[string]string)
 
-	ok, err := db.Ping()
-	if !ok {
-		return false, err
+	if err := db.conn.Select(db.ctx, &result, "SELECT * FROM systems"); err != nil {
+		return mp, err
 	}
 
-	selectQuery := fmt.Sprintf("SELECT systemName FROM systems WHERE systemId = '%v'", id)
-	rows, err := db.conn.Query(db.ctx, selectQuery)
-
-	if err != nil {
-		return false, err
+	for i := range result {
+		mp[result[i].SystemId] = result[i].SystemName
 	}
 
-	if !rows.Next() {
-		return false, nil
-	}
-
-	for rows.Next() {
-		if err := rows.Scan(&id); err != nil {
-			return false, err
-		}
-	}
-
-	err = rows.Close()
-	if err != nil {
-		return false, rows.Err()
-	}
-	return true, nil
+	return mp, nil
 }
 
 func (db Database) Ping() (bool, error) {

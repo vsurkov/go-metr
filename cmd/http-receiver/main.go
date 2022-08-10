@@ -8,10 +8,26 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"log"
+	"net"
+	"strings"
 	"time"
 )
 
+type Instance struct {
+	version      string
+	id           string
+	hostIP       string
+	hostMAC      net.HardwareAddr
+	knownSystems map[string]string
+}
+
+var app = new(Instance)
+
 func main() {
+	app.version = "0.0.1"
+	app.hostIP, app.hostMAC = getNetInfo()
+	app.id = strings.ReplaceAll(app.hostMAC.String(), ":", "")
+
 	// Clickhouse configuration
 	clickhouseDB, err := new(Database).Connect(dbConfig{
 		host:              "127.0.0.1",
@@ -31,6 +47,9 @@ func main() {
 	}
 	db = *clickhouseDB
 
+	app.knownSystems, err = db.GetSystems()
+	failOnError(err, "Can't receive systems")
+
 	// RabbitMQ configuration
 	rb.cfg = rabbitConfig{
 		username: "rabbitmq",
@@ -38,33 +57,28 @@ func main() {
 		host:     "127.0.0.1",
 		port:     5672,
 	}
-	//rabbit, err := new(Rabbit).Connect(cfg)
-	//if err != nil {
-	//	log.Fatal(err.Error())
-	//}
-	//rb = *rabbit
 
 	// Fiber configuration
-	appVersion := "0.0.1"
-	app := fiber.New(fiber.Config{
-		AppName: fmt.Sprintf("go-metr v %v", appVersion),
+
+	a := fiber.New(fiber.Config{
+		AppName: fmt.Sprintf("go-metr v %v, instance %v", app.version, app.id),
 	})
 
 	// Fiber middleware configuration
-	app.Use(logger.New())
-	app.Use(requestid.New())
+	a.Use(logger.New())
+	a.Use(requestid.New())
 
 	// Fiber endpoints configuration
-	app.Get("/", func(ctx *fiber.Ctx) error {
-		return ctx.Status(fiber.StatusOK).SendString(app.Config().AppName)
+	a.Get("/", func(ctx *fiber.Ctx) error {
+		return ctx.Status(fiber.StatusOK).SendString(a.Config().AppName)
 	})
-	app.Get("/metrics", monitor.New(monitor.Config{Title: "Metrics"}))
-	app.Get("/status", healthCheckHandler)
-	app.Post("/event", receiveEventHandler)
-	app.Get("/event", func(ctx *fiber.Ctx) error {
+	a.Get("/metrics", monitor.New(monitor.Config{Title: "Metrics"}))
+	a.Get("/status", healthCheckHandler)
+	a.Post("/event", receiveEventHandler)
+	a.Get("/event", func(ctx *fiber.Ctx) error {
 		return ctx.SendStatus(fiber.StatusForbidden)
 	})
 
 	// Start Fiber server on port
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(a.Listen(":3000"))
 }

@@ -1,10 +1,10 @@
 -- Создание таблицы событий
 CREATE TABLE IF NOT EXISTS events (
                                       date DateTime,
-                                      systemId UUID,
-                                      sessionId UUID,
-                                      totalLoading Float64,
-                                      domLoading Float64,
-                                      uri String,
-                                      userAgent String
+                                      SystemId UUID,
+                                      SessionId UUID,
+                                      TotalLoading Float64,
+                                      DomLoading Float64,
+                                      Uri String,
+                                      UserAgent String
 ) engine=Log
