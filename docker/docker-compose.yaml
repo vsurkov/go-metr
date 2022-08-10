@@ -39,6 +39,3 @@ services:
     volumes:
       - ./rabbitmq/rabbitmq-node-1/data/:/var/lib/rabbitmq
       - ./rabbitmq/rabbitmq-node-1/log/:/var/log/rabbitmq
-#      - ./rabbitmq/rabbitmq-node-1/enabled_plugins:/etc/rabbitmq/enabled_plugins
-#      - "./rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro"
-#      - "./autocluster-0.4.1.ez:/usr/lib/rabbitmq/lib/rabbitmq_server-3.5.5/plugins/autocluster-0.4.1.ez"
