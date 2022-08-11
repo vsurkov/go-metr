@@ -14,6 +14,7 @@ import (
 )
 
 type Instance struct {
+	name         string
 	version      string
 	id           string
 	hostIP       string
@@ -24,6 +25,7 @@ type Instance struct {
 var app = new(Instance)
 
 func main() {
+	app.name = "rest-receiver"
 	app.version = "0.0.1"
 	app.hostIP, app.hostMAC = getNetInfo()
 	app.id = strings.ReplaceAll(app.hostMAC.String(), ":", "")
@@ -61,7 +63,7 @@ func main() {
 	// Fiber configuration
 
 	a := fiber.New(fiber.Config{
-		AppName: fmt.Sprintf("go-metr v %v, instance %v", app.version, app.id),
+		AppName: fmt.Sprintf("go-metr %v v%v, %v", app.name, app.version, app.id),
 	})
 
 	// Fiber middleware configuration

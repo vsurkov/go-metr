@@ -7,11 +7,11 @@ ENV CGO_ENABLED 0
 ENV GOPATH /go
 ENV GOCACHE /go-build
 
-COPY ../../cmd/http-receiver/go.mod ../../cmd/server/go.sum ./
+COPY ../../cmd/rest-receiver/go.mod ../../cmd/server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
     go mod download
 
-COPY ../../cmd/http-receiver/. .
+COPY ../../cmd/rest-receiver/. .
 
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
     --mount=type=cache,target=/go-build \
