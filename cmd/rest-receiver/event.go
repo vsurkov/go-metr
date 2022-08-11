@@ -6,11 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"log"
-	"time"
 )
 
 type Event struct {
-	Date         time.Time `json:"Date"`
+	Timestamp    string    `json:"Timestamp"`
 	SystemId     uuid.UUID `json:"SystemId"`
 	SessionId    uuid.UUID `json:"SessionId"`
 	TotalLoading float64   `json:"TotalLoading"`
@@ -41,8 +40,11 @@ func receiveEventHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("SystemId %v not found", body.SystemId))
 	}
 
+	// Заполняем текущее время в сообщении
+	body.Timestamp = "string(time.Now().Unix())"
+
 	// Публикация сообщения в очередь events.queue RabbitMQ
-	// Маршалинк body в json
+	// Маршалинг body в json
 	json, err := json2.Marshal(body)
 	if err != nil {
 		log.Printf("SessionId: %v on %v messageID: %v, %v", body.SessionId, "marshalling", msgID, err.Error())
@@ -50,7 +52,6 @@ func receiveEventHandler(ctx *fiber.Ctx) error {
 	}
 
 	// Публикация в очередь
-
 	err = publishEvent(json, msgID)
 	if err != nil {
 		log.Printf("SessionId: %v on %v messageID: %v, %v", body.SessionId, "publishing", msgID, err.Error())

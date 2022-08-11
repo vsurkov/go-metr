@@ -1,6 +1,6 @@
 -- Создание таблицы событий
 CREATE TABLE IF NOT EXISTS events (
-                                      date DateTime,
+                                      Timestamp String,
                                       SystemId UUID,
                                       SessionId UUID,
                                       TotalLoading Float64,

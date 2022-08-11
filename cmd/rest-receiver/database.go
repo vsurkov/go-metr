@@ -70,24 +70,24 @@ func (db Database) Connect(c dbConfig) (*Database, error) {
 		return &Database{}, err
 	}
 
-	if err := conn.Exec(ctx, `DROP TABLE IF EXISTS events`); err != nil {
-		return &Database{}, err
-	}
-	err = conn.Exec(ctx, `
-		CREATE TABLE IF NOT EXISTS events (
-			Date DateTime,
-			SystemId UUID,
-			SessionId UUID,
-			TotalLoading Float64,
-			DomLoading Float64,
-			Uri String,			
-			UserAgent String
-		) engine=Log
-	`)
-
-	if err != nil {
-		return &Database{}, err
-	}
+	//if err := conn.Exec(ctx, `DROP TABLE IF EXISTS events`); err != nil {
+	//	return &Database{}, err
+	//}
+	//err = conn.Exec(ctx, `
+	//	CREATE TABLE IF NOT EXISTS events (
+	//		Date DateTime,
+	//		SystemId UUID,
+	//		SessionId UUID,
+	//		TotalLoading Float64,
+	//		DomLoading Float64,
+	//		Uri String,
+	//		UserAgent String
+	//	) engine=Log
+	//`)
+	//
+	//if err != nil {
+	//	return &Database{}, err
+	//}
 	return &Database{
 		conn: conn,
 		ctx:  ctx,

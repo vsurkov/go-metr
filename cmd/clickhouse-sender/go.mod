@@ -6,6 +6,8 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.2.0
 	github.com/gofiber/fiber/v2 v2.36.0
 	github.com/google/uuid v1.3.0
+	github.com/streadway/amqp v1.0.0
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 )
 
 require (

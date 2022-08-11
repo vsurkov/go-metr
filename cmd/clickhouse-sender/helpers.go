@@ -65,3 +65,13 @@ func getNetInfo() (string, net.HardwareAddr) {
 
 	return hostIP, macAddress
 }
+
+//
+//func identity() string {
+//	hostname, err := os.Hostname()
+//	h := sha1.New()
+//	fmt.Fprint(h, hostname)
+//	fmt.Fprint(h, err)
+//	fmt.Fprint(h, os.Getpid())
+//	return fmt.Sprintf("%x", h.Sum(nil))
+//}
