@@ -287,10 +287,11 @@ var (
 	uri          = flag.String("uri", "amqp://rabbitmq:rabbitmq@localhost:5672/", "AMQP URI")
 	exchange     = flag.String("exchange", "test-exchange", "Durable, non-auto-deleted AMQP exchange name")
 	exchangeType = flag.String("exchange-type", "direct", "Exchange type - direct|fanout|topic|x-custom")
-	queue        = flag.String("queue", "98dd60853a72.events.queue", "Ephemeral AMQP queue name")
+	queue        = flag.String("queue", "rncb.events.queue", "Ephemeral AMQP queue name")
 	bindingKey   = flag.String("key", "test-key", "AMQP binding key")
 	consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
 	lifetime     = flag.Duration("lifetime", 5*time.Second, "lifetime of process before shutdown (0s=infinite)")
+	bufferSize   = flag.Int("bufferSize", 100, "Buffer size for batch database Writing (default 100 messages)")
 )
 
 func init() {
@@ -321,6 +322,8 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	db = *clickhouseDB
+	b := new(Buffer)
+	db.buffer = b.newBuffer(*bufferSize)
 
 	c, err := NewConsumer(*uri, *exchange, *exchangeType, *queue, *bindingKey, *consumerTag)
 	if err != nil {

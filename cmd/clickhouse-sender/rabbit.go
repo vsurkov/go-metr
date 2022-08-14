@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/streadway/amqp"
 	"log"
-	"sync"
 )
 
 type Consumer struct {
@@ -13,10 +12,6 @@ type Consumer struct {
 	tag     string
 	done    chan error
 }
-
-//func startRabbitMQ() {
-//
-//}
 
 func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (*Consumer, error) {
 	c := &Consumer{
@@ -126,30 +121,11 @@ func handle(deliveries <-chan amqp.Delivery, done chan error) {
 		//if err != nil {
 		//	log.Printf("Error on writing Event to database: %v\n", err)
 		//}
-		buffWrite(msg)
+
+		db.buffer.buffWrite(db.buffer, msg, db)
+		//buffWrite(msg)
 		d.Ack(false)
 	}
 	log.Printf("handle: deliveries channel closed")
 	done <- nil
-}
-
-var buffer []Event
-var bufferSize = 100
-var mux sync.Mutex
-
-func buffWrite(msg *Event) {
-	if len(buffer) < bufferSize {
-		buffer = append(buffer, *msg)
-	} else {
-
-		mux.Lock()
-		err := db.WriteBatch(buffer)
-		if err != nil {
-			log.Printf("Error on writing batch of Event to database: %v\n", err)
-		}
-		log.Printf("Flush buffer %v", bufferSize)
-		buffer = nil
-		mux.Unlock()
-	}
-
 }

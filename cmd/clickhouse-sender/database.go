@@ -11,8 +11,9 @@ import (
 )
 
 type Database struct {
-	conn driver.Conn
-	ctx  context.Context
+	conn   driver.Conn
+	ctx    context.Context
+	buffer *Buffer
 }
 
 type dbConfig struct {
@@ -54,7 +55,7 @@ func (db Database) Write(msg *Event) error {
 	return nil
 }
 
-func (db Database) WriteBatch(mss []Event) error {
+func (db Database) writeBatch(mss []Event) error {
 	batch, err := db.conn.PrepareBatch(db.ctx, "INSERT INTO events (Timestamp, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
 	if err != nil {
 		return err

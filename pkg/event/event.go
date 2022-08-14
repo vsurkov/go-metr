@@ -1,4 +1,4 @@
-package main
+package event
 
 import (
 	json2 "encoding/json"
