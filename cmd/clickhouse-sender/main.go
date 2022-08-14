@@ -270,8 +270,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"log"
-	"net"
-	"strings"
 	"time"
 )
 
@@ -279,8 +277,6 @@ type Instance struct {
 	name         string
 	version      string
 	id           string
-	hostIP       string
-	hostMAC      net.HardwareAddr
 	knownSystems map[string]string
 }
 
@@ -303,8 +299,9 @@ func init() {
 
 func main() {
 	app.version = "0.0.1"
-	app.hostIP, app.hostMAC = getNetInfo()
-	app.id = strings.ReplaceAll(app.hostMAC.String(), ":", "")
+	//app.hostIP, app.hostMAC = getNetInfo()
+	//app.id = strings.ReplaceAll(app.hostMAC.String(), ":", "")
+	app.id = "rncb"
 
 	// Clickhouse configuration
 	clickhouseDB, err := new(Database).Connect(dbConfig{

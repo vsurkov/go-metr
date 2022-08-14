@@ -6,10 +6,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"log"
+	"time"
 )
 
 type Event struct {
-	Timestamp    string    `json:"Timestamp"`
+	Timestamp    int64     `json:"Timestamp"`
 	SystemId     uuid.UUID `json:"SystemId"`
 	SessionId    uuid.UUID `json:"SessionId"`
 	TotalLoading float64   `json:"TotalLoading"`
@@ -41,7 +42,7 @@ func receiveEventHandler(ctx *fiber.Ctx) error {
 	}
 
 	// Заполняем текущее время в сообщении
-	body.Timestamp = "string(time.Now().Unix())"
+	body.Timestamp = time.Now().Unix()
 
 	// Публикация сообщения в очередь events.queue RabbitMQ
 	// Маршалинг body в json

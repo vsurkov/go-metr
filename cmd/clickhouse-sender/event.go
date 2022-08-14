@@ -7,7 +7,7 @@ import (
 )
 
 type Event struct {
-	Timestamp    string    `json:"Timestamp"`
+	Timestamp    int64     `json:"Timestamp"`
 	SystemId     uuid.UUID `json:"SystemId"`
 	SessionId    uuid.UUID `json:"SessionId"`
 	TotalLoading float64   `json:"TotalLoading"`

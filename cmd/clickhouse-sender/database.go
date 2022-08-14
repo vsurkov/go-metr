@@ -59,15 +59,15 @@ func (db Database) WriteBatch(mss []Event) error {
 	if err != nil {
 		return err
 	}
-	for i := range mss {
+	for _, evt := range mss {
 		err := batch.Append(
-			mss[i].Timestamp,
-			mss[i].SystemId,
-			mss[i].SessionId,
-			mss[i].TotalLoading,
-			mss[i].DomLoading,
-			mss[i].Uri,
-			mss[i].UserAgent,
+			evt.Timestamp,
+			evt.SystemId,
+			evt.SessionId,
+			evt.TotalLoading,
+			evt.DomLoading,
+			evt.Uri,
+			evt.UserAgent,
 		)
 		if err != nil {
 			return err
