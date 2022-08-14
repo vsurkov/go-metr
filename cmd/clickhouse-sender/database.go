@@ -4,15 +4,30 @@ import (
 	"context"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/compress"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"github.com/google/uuid"
 	"log"
 	"time"
 )
 
 type Database struct {
-	conn driver.Conn
-	ctx  context.Context
+	conn   driver.Conn
+	ctx    context.Context
+	buffer *Buffer
+}
+
+type dbConfig struct {
+	host              string
+	port              int
+	database          string
+	username          string
+	password          string
+	debug             bool
+	dialTimeout       time.Duration
+	maxOpenConns      int
+	maxIdleConns      int
+	connMaxLifetime   time.Duration
+	compressionMethod compress.Method
 }
 
 var (
@@ -20,33 +35,77 @@ var (
 	db Database
 )
 
-func (db Database) Connect() (*Database, error) {
+func (db Database) Write(msg *Event) error {
+	m := *msg
+	insertQuery := fmt.Sprintf(`INSERT INTO events (Timestamp, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent) 
+		VALUES ('%v','%v','%v','%v','%v','%v','%v')`,
+		m.Timestamp,
+		m.SystemId,
+		m.SessionId,
+		m.TotalLoading,
+		m.DomLoading,
+		m.Uri,
+		m.UserAgent)
+
+	err := db.conn.Exec(db.ctx, insertQuery)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db Database) writeBatch(mss []Event) error {
+	batch, err := db.conn.PrepareBatch(db.ctx, "INSERT INTO events (Timestamp, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
+	if err != nil {
+		return err
+	}
+	for _, evt := range mss {
+		err := batch.Append(
+			evt.Timestamp,
+			evt.SystemId,
+			evt.SessionId,
+			evt.TotalLoading,
+			evt.DomLoading,
+			evt.Uri,
+			evt.UserAgent,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return batch.Send()
+
+}
+
+func (db Database) Connect(c dbConfig) (*Database, error) {
 	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{"127.0.0.1:9000"},
+		Addr: []string{fmt.Sprintf("%v:%d", c.host, c.port)},
 		Auth: clickhouse.Auth{
-			Database: "default",
-			Username: "default",
-			Password: "",
+			Database: c.database,
+			Username: c.username,
+			Password: c.password,
 		},
-		//Debug:           true,
-		DialTimeout:     time.Second,
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		ConnMaxLifetime: time.Hour,
+		Debug:           c.debug,
+		DialTimeout:     c.dialTimeout,
+		MaxOpenConns:    c.maxOpenConns,
+		MaxIdleConns:    c.maxIdleConns,
+		ConnMaxLifetime: c.connMaxLifetime,
 		Compression: &clickhouse.Compression{
-			Method: clickhouse.CompressionLZ4,
+			Method: c.compressionMethod,
 		},
 	})
 	if err != nil {
 		return &Database{}, err
 	}
 
+	err = conn.Close()
+	failOnError(err, "Error handled on defer conn.Close() to database")
+
 	ctx := clickhouse.Context(context.Background(), clickhouse.WithSettings(clickhouse.Settings{
 		"max_block_size": 10,
 	}), clickhouse.WithProgress(func(p *clickhouse.Progress) {
-		log.Println("progress: ", p)
 	}), clickhouse.WithProfileInfo(func(p *clickhouse.ProfileInfo) {
-		log.Println("profile info: ", p)
 	}))
 	if err := conn.Ping(ctx); err != nil {
 		if exception, ok := err.(*clickhouse.Exception); ok {
@@ -55,18 +114,15 @@ func (db Database) Connect() (*Database, error) {
 		return &Database{}, err
 	}
 
-	if err := conn.Exec(ctx, `DROP TABLE IF EXISTS events`); err != nil {
-		return &Database{}, err
-	}
 	err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS events (
-			date DateTime,
-			systemId UUID,
-			sessionId UUID,
-			totalLoading Float64,
-			domLoading Float64,
-			uri String,			
-			userAgent String
+			Timestamp timestamp,
+			SystemId UUID,
+			SessionId UUID,
+			TotalLoading Float64,
+			DomLoading Float64,
+			Uri String,			
+			UserAgent String
 		) engine=Log
 	`)
 
@@ -77,42 +133,6 @@ func (db Database) Connect() (*Database, error) {
 		conn: conn,
 		ctx:  ctx,
 	}, err
-}
-
-func (db Database) HasSystem(id uuid.UUID) (bool, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("HasSystem verify catch Panic()")
-		}
-	}()
-
-	ok, err := db.Ping()
-	if !ok {
-		return false, err
-	}
-
-	selectQuery := fmt.Sprintf("SELECT systemName FROM systems WHERE systemId = '%v'", id)
-	rows, err := db.conn.Query(db.ctx, selectQuery)
-
-	if err != nil {
-		return false, err
-	}
-
-	if !rows.Next() {
-		return false, nil
-	}
-
-	for rows.Next() {
-		if err := rows.Scan(&id); err != nil {
-			return false, err
-		}
-	}
-
-	err = rows.Close()
-	if err != nil {
-		return false, rows.Err()
-	}
-	return true, nil
 }
 
 func (db Database) Ping() (bool, error) {
