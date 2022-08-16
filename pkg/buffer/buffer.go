@@ -1,7 +1,6 @@
 package buffer
 
 import (
-	"github.com/vsurkov/go-metr/event"
 	"log"
 	"sync"
 )
