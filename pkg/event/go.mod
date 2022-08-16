@@ -1,4 +1,4 @@
-module github.com/vsurkov/go-metr/event
+module github.com/vsurkov/go-metr/pkg/event
 
 go 1.19
 
