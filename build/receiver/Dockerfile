@@ -7,7 +7,7 @@ ENV CGO_ENABLED 0
 ENV GOPATH /go
 ENV GOCACHE /go-build
 
-COPY ../../cmd/rest-receiver/go.mod ../../cmd/server/go.sum ./
+COPY ../../go.mod ../../cmd/server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
     go mod download
 
