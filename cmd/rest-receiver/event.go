@@ -5,24 +5,16 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/vsurkov/go-metr/internal/event"
+	"github.com/vsurkov/go-metr/internal/rabbitmq"
 	"log"
 	"time"
 )
 
-type Event struct {
-	Timestamp    int64     `json:"Timestamp"`
-	SystemId     uuid.UUID `json:"SystemId"`
-	SessionId    uuid.UUID `json:"SessionId"`
-	TotalLoading float64   `json:"TotalLoading"`
-	DomLoading   float64   `json:"DomLoading"`
-	Uri          string    `json:"Uri"`
-	UserAgent    string    `json:"UserAgent"`
-}
-
-func receiveEventHandler(ctx *fiber.Ctx) error {
+func ReceiveEventHandler(ctx *fiber.Ctx) error {
 	// Парсинг body к Event
 	msgID := uuid.New()
-	body := new(Event)
+	body := new(event.Event)
 	err := ctx.BodyParser(body)
 	if err != nil {
 		err := ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
@@ -45,15 +37,15 @@ func receiveEventHandler(ctx *fiber.Ctx) error {
 	body.Timestamp = time.Now().Unix()
 
 	// Публикация сообщения в очередь events.queue RabbitMQ
-	// Маршалинг body в json
-	json, err := json2.Marshal(body)
+	// Маршалинг body в msg
+	msg, err := json2.Marshal(body)
 	if err != nil {
 		log.Printf("SessionId: %v on %v messageID: %v, %v", body.SessionId, "marshalling", msgID, err.Error())
 		return ctx.SendStatus(fiber.StatusInternalServerError)
 	}
 
 	// Публикация в очередь
-	err = publishEvent(json, msgID)
+	err = rabbitmq.PublishEvent(app.RB.Cfg, app.ID, msg, msgID)
 	if err != nil {
 		log.Printf("SessionId: %v on %v messageID: %v, %v", body.SessionId, "publishing", msgID, err.Error())
 		return ctx.SendStatus(fiber.StatusInternalServerError)
@@ -64,7 +56,7 @@ func receiveEventHandler(ctx *fiber.Ctx) error {
 
 func isExist(id uuid.UUID) (bool, error) {
 	// TODO добавить инвалидацию по таймауту
-	if _, ok := app.knownSystems[id.String()]; ok {
+	if _, ok := app.KnownSystems[id.String()]; ok {
 		return true, nil
 	}
 	return false, nil

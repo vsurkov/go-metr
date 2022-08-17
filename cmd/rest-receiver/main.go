@@ -1,66 +1,78 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/vsurkov/go-metr/internal/db"
+	"github.com/vsurkov/go-metr/internal/helpers"
+	"github.com/vsurkov/go-metr/internal/instance"
+	"github.com/vsurkov/go-metr/internal/rabbitmq"
 	"log"
 	"time"
 )
 
-type Instance struct {
-	name         string
-	version      string
-	id           string
-	knownSystems map[string]string
+var (
+	app_port = flag.String("app_port", "3000", "Application port, default http://127.0.0.1:4000")
+	app_name = flag.String("app_name", "rest-application", "Application name, default rest-application")
+	app_id   = flag.String("app_id", "rncb", "Instance name, will be used in Queue prefix, default rncb")
+	uri      = flag.String("uri", "amqp://rabbitmq:rabbitmq@localhost:5672/", "AMQP URI")
+	//exchange     = flag.String("exchange", "test-exchange", "Durable, non-auto-deleted AMQP exchange name")
+	//exchangeType = flag.String("exchange-type", "direct", "Exchange type - direct|fanout|topic|x-custom")
+	//queue        = flag.String("queue", "rncb.events.queue", "Ephemeral AMQP queue name")
+	//bindingKey   = flag.String("key", "test-key", "AMQP binding key")
+	//consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
+	bufferSize = flag.Int("bufferSize", 100, "Buffer size for batch database Writing (default 100 messages)")
+)
+
+func init() {
+	flag.Parse()
 }
 
-var app = new(Instance)
+var app = new(instance.Instance)
 
 func main() {
-	app.name = "rest-receiver"
-	app.version = "0.0.1"
-	//app.hostIP, app.hostMAC = getNetInfo()
-	//app.id = strings.ReplaceAll(app.hostMAC.String(), ":", "")
-	app.id = "rncb"
+	app.Name = *app_name
+	app.ID = *app_id
+	app.Version = "0.0.1"
+	//application.hostIP, application.hostMAC = getNetInfo()
+	//application.id = strings.ReplaceAll(application.hostMAC.String(), ":", "")
 
 	// Clickhouse configuration
-	clickhouseDB, err := new(Database).Connect(dbConfig{
-		host:              "127.0.0.1",
-		port:              9000,
-		database:          "default",
-		username:          "default",
-		password:          "",
-		debug:             false,
-		dialTimeout:       time.Second,
-		maxOpenConns:      10,
-		maxIdleConns:      5,
-		connMaxLifetime:   time.Hour,
-		compressionMethod: clickhouse.CompressionLZ4,
+	clickhouseDB, err := new(db.Database).Connect(db.DBConfig{
+		Host:              "127.0.0.1",
+		Port:              9000,
+		Database:          "default",
+		Username:          "default",
+		Password:          "",
+		Debug:             false,
+		DialTimeout:       time.Second,
+		MaxOpenConns:      10,
+		MaxIdleConns:      5,
+		ConnMaxLifetime:   time.Hour,
+		CompressionMethod: clickhouse.CompressionLZ4,
 	})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	db = *clickhouseDB
+	app.DB = *clickhouseDB
 
-	app.knownSystems, err = db.GetSystems()
-	failOnError(err, "Can't receive systems")
+	app.KnownSystems, err = app.DB.GetSystems()
+	helpers.FailOnError(err, "Can't receive systems")
 
 	// RabbitMQ configuration
-	rb.cfg = rabbitConfig{
-		username: "rabbitmq",
-		password: "rabbitmq",
-		host:     "127.0.0.1",
-		port:     5672,
+	app.RB.Cfg = rabbitmq.Config{
+		Uri: *uri,
 	}
 
 	// Fiber configuration
 
 	a := fiber.New(fiber.Config{
-		AppName: fmt.Sprintf("go-metr %v v%v, %v", app.name, app.version, app.id),
+		AppName: fmt.Sprintf("go-metr %v v%v, %v", app.Name, app.Version, app.ID),
 	})
 
 	// Fiber middleware configuration
@@ -72,12 +84,12 @@ func main() {
 		return ctx.Status(fiber.StatusOK).SendString(a.Config().AppName)
 	})
 	a.Get("/metrics", monitor.New(monitor.Config{Title: "Metrics"}))
-	a.Get("/status", healthCheckHandler)
-	a.Post("/event", receiveEventHandler)
+	a.Get("/status", HealthCheckHandler)
+	a.Post("/event", ReceiveEventHandler)
 	a.Get("/event", func(ctx *fiber.Ctx) error {
 		return ctx.SendStatus(fiber.StatusForbidden)
 	})
 
-	// Start Fiber server on port
-	log.Fatal(a.Listen(":3000"))
+	// Run Fiber server on port
+	log.Fatal(a.Listen(fmt.Sprintf(":%v", *app_port)))
 }

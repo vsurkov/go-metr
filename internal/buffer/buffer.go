@@ -1,41 +1,42 @@
 package buffer
 
 import (
+	"github.com/vsurkov/go-metr/internal/event"
 	"log"
 	"sync"
 )
 
 type BufferedWriter interface {
-	writeBatch(msg []Event) error
+	WriteBatch(msg []event.Event) error
 }
 
 type Buffer struct {
-	buffer []Event
+	Buffer []event.Event
 	cap    int
 	mux    sync.Mutex
 }
 
-func (b *Buffer) newBuffer(cap int) *Buffer {
+func (b *Buffer) NewBuffer(cap int) *Buffer {
 	return &Buffer{
-		buffer: make([]Event, cap),
+		Buffer: make([]event.Event, cap),
 		cap:    cap,
 		mux:    sync.Mutex{},
 	}
 }
 
-func (b *Buffer) buffWrite(bf *Buffer, msg *Event, bw BufferedWriter) {
-	if len(bf.buffer) < bf.cap {
-		bf.buffer = append(bf.buffer, *msg)
+func (b *Buffer) BuffWrite(bf *Buffer, msg *event.Event, bw BufferedWriter) {
+	if len(bf.Buffer) < bf.cap {
+		bf.Buffer = append(bf.Buffer, *msg)
 	} else {
 
 		bf.mux.Lock()
-		err := bw.writeBatch(bf.buffer)
+		err := bw.WriteBatch(bf.Buffer)
 		//err := db.WriteBatch(buffer)
 		if err != nil {
 			log.Printf("Error on writing batch of Event to database: %v\n", err)
 		}
 		log.Printf("Flush buffered %v messages", bf.cap)
-		bf.buffer = nil
+		bf.Buffer = nil
 		bf.mux.Unlock()
 	}
 

@@ -16,7 +16,7 @@ type Event struct {
 	UserAgent    string    `json:"UserAgent"`
 }
 
-func Unmarshal(b []byte) *Event {
+func (evt Event) Unmarshal(b []byte) *Event {
 	msg := new(Event)
 	err := json2.Unmarshal(b, &msg)
 	if err != nil {
