@@ -35,9 +35,10 @@ type DBConfig struct {
 
 func (db Database) Write(msg *event.Event) error {
 	m := *msg
-	insertQuery := fmt.Sprintf(`INSERT INTO events (Timestamp, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent) 
-		VALUES ('%v','%v','%v','%v','%v','%v','%v')`,
+	insertQuery := fmt.Sprintf(`INSERT INTO events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent) 
+		VALUES ('%v', '%v','%v','%v','%v','%v','%v','%v')`,
 		m.Timestamp,
+		m.MessageID,
 		m.SystemId,
 		m.SessionId,
 		m.TotalLoading,
@@ -54,13 +55,14 @@ func (db Database) Write(msg *event.Event) error {
 }
 
 func (db Database) WriteBatch(mss []event.Event) error {
-	batch, err := db.Conn.PrepareBatch(db.Ctx, "INSERT INTO events (Timestamp, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
+	batch, err := db.Conn.PrepareBatch(db.Ctx, "INSERT INTO events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
 	if err != nil {
 		return err
 	}
 	for _, evt := range mss {
 		err := batch.Append(
 			evt.Timestamp,
+			evt.MessageID,
 			evt.SystemId,
 			evt.SessionId,
 			evt.TotalLoading,
@@ -115,6 +117,7 @@ func (db Database) Connect(c DBConfig) (*Database, error) {
 	err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS events (
 			Timestamp timestamp,
+			MessageID UUID,
 			SystemId UUID,
 			SessionId UUID,
 			TotalLoading Float64,

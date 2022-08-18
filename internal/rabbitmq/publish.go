@@ -1,14 +1,22 @@
 package rabbitmq
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/streadway/amqp"
+	"github.com/vsurkov/go-metr/internal/event"
 	"log"
 	"sync"
 )
 
-func PublishEvent(cfg Config, qName string, msg []byte, id uuid.UUID) error {
+func (rb Rabbit) WriteBatch(mss []event.Event) error {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, mss)
+	return err
+}
+
+func PublishEvent(cfg Config, evt *event.Event) error {
 	conn, err := amqp.Dial(cfg.Uri)
 	if err != nil {
 		return err
@@ -33,7 +41,7 @@ func PublishEvent(cfg Config, qName string, msg []byte, id uuid.UUID) error {
 	}(ch)
 
 	q, err := ch.QueueDeclare(
-		fmt.Sprintf("%v.events.queue", qName),
+		fmt.Sprintf("%v.events.queue", cfg.Queue),
 		true,
 		false,
 		false,
@@ -47,7 +55,7 @@ func PublishEvent(cfg Config, qName string, msg []byte, id uuid.UUID) error {
 	// Публикация сообщения в очередь
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func() error {
+	go func() {
 		defer wg.Done()
 		err = ch.Publish(
 			"",
@@ -56,14 +64,13 @@ func PublishEvent(cfg Config, qName string, msg []byte, id uuid.UUID) error {
 			false,
 			amqp.Publishing{
 				DeliveryMode: 2,
-				MessageId:    id.String(),
+				MessageId:    evt.MessageID.String(),
 				ContentType:  "app/json",
-				Body:         msg,
+				Body:         evt.Body,
 			})
 		if err != nil {
-			return err
+			log.Printf("Error on publishing message %v to queue\n %v", evt.MessageID.String(), err)
 		}
-		return nil
 	}()
 	wg.Wait()
 	return nil

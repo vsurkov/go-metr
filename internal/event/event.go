@@ -8,12 +8,14 @@ import (
 
 type Event struct {
 	Timestamp    int64     `json:"Timestamp"`
+	MessageID    uuid.UUID `json:"MessageID"`
 	SystemId     uuid.UUID `json:"SystemId"`
 	SessionId    uuid.UUID `json:"SessionId"`
 	TotalLoading float64   `json:"TotalLoading"`
 	DomLoading   float64   `json:"DomLoading"`
 	Uri          string    `json:"Uri"`
 	UserAgent    string    `json:"UserAgent"`
+	Body         []byte
 }
 
 func (evt Event) Unmarshal(b []byte) *Event {
