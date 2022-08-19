@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-func NewConsumer(cfg Config, queueName string, db db.Database) (*Consumer, error) {
+func NewConsumer(cfg *Config, queueName string, db db.Database) (*Consumer, error) {
 	c := &Consumer{
 		conn:    nil,
 		channel: nil,

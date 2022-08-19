@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/vsurkov/go-metr/internal/db"
 	"github.com/vsurkov/go-metr/internal/helpers"
 	"github.com/vsurkov/go-metr/internal/instance"
@@ -26,7 +24,7 @@ var (
 	//queue        = flag.String("queue", "rncb.events.queue", "Ephemeral AMQP queue name")
 	//bindingKey   = flag.String("key", "test-key", "AMQP binding key")
 	//consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
-	bufferSize = flag.Int("bufferSize", 2, "Buffer size for batch database Writing (default 100 messages)")
+	//bufferSize = flag.Int("bufferSize", 2, "Buffer size for batch database Writing (default 100 messages)")
 )
 
 func init() {
@@ -82,9 +80,9 @@ func main() {
 	})
 
 	// Fiber middleware configuration
-	a.Use(logger.New())
+	//a.Use(logger.New())
 	//a.Use(requestid.New())
-	a.Use(pprof.New())
+	//a.Use(pprof.New())
 	// Fiber endpoints configuration
 	a.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusOK).SendString(a.Config().AppName)

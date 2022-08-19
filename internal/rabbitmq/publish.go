@@ -21,26 +21,12 @@ func InitProducer(r *Rabbit) error {
 	if err != nil {
 		return err
 	}
-	//defer func(conn *amqp.Connection) {
-	//	err := conn.Close()
-	//	if err != nil {
-	//		log.Println("RabbitMQ defer closing connection error")
-	//	}
-	//}(conn)
-	//r.Connection = conn
 
 	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
 	r.Channel = ch
-
-	//defer func(ch *amqp.Channel) {
-	//	err := ch.Close()
-	//	if err != nil {
-	//		log.Println("RabbitMQ defer closing channel error")
-	//	}
-	//}(ch)
 
 	_, err = ch.QueueDeclare(
 		r.Cfg.Queue,

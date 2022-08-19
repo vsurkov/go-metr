@@ -59,7 +59,7 @@ func main() {
 	app.DB.Buffer = b.NewBuffer(*bufferSize)
 
 	// RabbitMQ configuration
-	app.RB.Cfg = rabbitmq.Config{
+	app.RB.Cfg = &rabbitmq.Config{
 		Uri:          *uri,
 		Exchange:     *exchange,
 		ExchangeType: *exchangeType,
