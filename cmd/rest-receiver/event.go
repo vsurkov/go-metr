@@ -55,7 +55,9 @@ func ReceiveEventHandler(ctx *fiber.Ctx) error {
 	body.Body = msg
 
 	// Публикация в очередь
-	err = rabbitmq.PublishEvent(app.RB.Cfg, body)
+	err = rabbitmq.PublishEvent(app.RB, &rabbitmq.RabbitMsg{
+		Message: body,
+	})
 	//err = app.RB.Buffer.BuffWrite(app.RB.Buffer, body, app.RB)
 
 	if err != nil {

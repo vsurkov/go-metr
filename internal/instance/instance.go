@@ -6,9 +6,9 @@ import (
 )
 
 type Instance struct {
-	Name         string
+	FullName     string
 	Version      string
-	ID           string
+	Name         string
 	DB           db.Database
 	RB           rabbitmq.Rabbit
 	KnownSystems map[string]string
