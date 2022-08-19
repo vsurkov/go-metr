@@ -3,9 +3,9 @@ package rabbitmq
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"github.com/streadway/amqp"
 	"github.com/vsurkov/go-metr/internal/event"
+	"github.com/vsurkov/go-metr/internal/helpers"
 	"log"
 	"sync"
 )
@@ -16,32 +16,20 @@ func (rb Rabbit) WriteBatch(mss []event.Event) error {
 	return err
 }
 
-func PublishEvent(cfg Config, evt *event.Event) error {
-	conn, err := amqp.Dial(cfg.Uri)
+func InitProducer(r *Rabbit) error {
+	conn, err := amqp.Dial(r.Cfg.Uri)
 	if err != nil {
 		return err
 	}
-	defer func(conn *amqp.Connection) {
-		err := conn.Close()
-		if err != nil {
-			log.Println("RabbitMQ defer closing connection error")
-		}
-	}(conn)
 
 	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
+	r.Channel = ch
 
-	defer func(ch *amqp.Channel) {
-		err := ch.Close()
-		if err != nil {
-			log.Println("RabbitMQ defer closing channel error")
-		}
-	}(ch)
-
-	q, err := ch.QueueDeclare(
-		fmt.Sprintf("%v.events.queue", cfg.Queue),
+	_, err = ch.QueueDeclare(
+		r.Cfg.Queue,
 		true,
 		false,
 		false,
@@ -52,24 +40,33 @@ func PublishEvent(cfg Config, evt *event.Event) error {
 	if err != nil {
 		return err
 	}
-	// Публикация сообщения в очередь
+	return nil
+}
+
+func PublishEvent(r Rabbit, msg *RabbitMsg) error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = ch.Publish(
+		err := r.Channel.Publish(
 			"",
-			q.Name,
+			r.Cfg.Queue,
 			false,
 			false,
 			amqp.Publishing{
 				DeliveryMode: 2,
-				MessageId:    evt.MessageID.String(),
+				MessageId:    msg.Message.MessageID.String(),
 				ContentType:  "app/json",
-				Body:         evt.Body,
+				Body:         msg.Message.Body,
 			})
 		if err != nil {
-			log.Printf("Error on publishing message %v to queue\n %v", evt.MessageID.String(), err)
+			log.Printf("Error on publishing messages to queue - reconnecting to RabbitMQ\n %v", err)
+
+			// On error try to reconnect
+			err = InitProducer(&r)
+			if err != nil {
+				helpers.FailOnError(err, "Can' initialise RabbitMQ")
+			}
 		}
 	}()
 	wg.Wait()

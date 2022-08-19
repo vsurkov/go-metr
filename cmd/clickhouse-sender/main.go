@@ -35,7 +35,7 @@ func init() {
 
 func main() {
 	app.Version = "0.0.1"
-	app.ID = "rncb"
+	app.Name = "rncb"
 
 	// Clickhouse configuration
 	clickhouseDB, err := new(db.Database).Connect(db.DBConfig{
@@ -59,7 +59,7 @@ func main() {
 	app.DB.Buffer = b.NewBuffer(*bufferSize)
 
 	// RabbitMQ configuration
-	app.RB.Cfg = rabbitmq.Config{
+	app.RB.Cfg = &rabbitmq.Config{
 		Uri:          *uri,
 		Exchange:     *exchange,
 		ExchangeType: *exchangeType,
@@ -84,7 +84,7 @@ func main() {
 	// Fiber configuration
 
 	a := fiber.New(fiber.Config{
-		AppName: fmt.Sprintf("go-metr v %v, app %v", app.Version, app.ID),
+		AppName: fmt.Sprintf("go-metr v %v, app %v", app.Version, app.Name),
 	})
 
 	// Fiber middleware configuration

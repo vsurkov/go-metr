@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
-	"github.com/vsurkov/go-metr/internal/buffer"
 	"github.com/vsurkov/go-metr/internal/db"
 	"github.com/vsurkov/go-metr/internal/helpers"
 	"github.com/vsurkov/go-metr/internal/instance"
@@ -27,7 +24,7 @@ var (
 	//queue        = flag.String("queue", "rncb.events.queue", "Ephemeral AMQP queue name")
 	//bindingKey   = flag.String("key", "test-key", "AMQP binding key")
 	//consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
-	bufferSize = flag.Int("bufferSize", 2, "Buffer size for batch database Writing (default 100 messages)")
+	//bufferSize = flag.Int("bufferSize", 2, "Buffer size for batch database Writing (default 100 messages)")
 )
 
 func init() {
@@ -37,8 +34,8 @@ func init() {
 var app = new(instance.Instance)
 
 func main() {
-	app.Name = *app_name
-	app.ID = *app_id
+	app.FullName = *app_name
+	app.Name = *app_id
 	app.Version = "0.0.1"
 
 	// Clickhouse configuration
@@ -64,23 +61,28 @@ func main() {
 	helpers.FailOnError(err, "Can't receive systems")
 
 	// RabbitMQ configuration
-	app.RB.Cfg = rabbitmq.Config{
+	app.RB.Cfg = &rabbitmq.Config{
 		Uri:   *uri,
-		Queue: app.ID,
+		Queue: fmt.Sprintf("%v.events.queue", app.Name),
+	}
+	err = rabbitmq.InitProducer(&app.RB)
+	if err != nil {
+		helpers.FailOnError(err, "Can' initialise RabbitMQ")
 	}
 
-	b := new(buffer.Buffer)
-	app.RB.Buffer = b.NewBuffer(*bufferSize)
+	// Батчи для рэббита в лоб не сделать, можно использовать потом для передачи в массива в бинарной последовательности
+	//b := new(buffer.Buffer)
+	//app.RB.Buffer = b.NewBuffer(*bufferSize)
 
 	// Fiber configuration
 	a := fiber.New(fiber.Config{
-		AppName: fmt.Sprintf("go-metr %v v%v, %v", app.Name, app.Version, app.ID),
+		AppName: fmt.Sprintf("go-metr %v v%v, %v", app.FullName, app.Version, app.Name),
 	})
 
 	// Fiber middleware configuration
-	a.Use(logger.New())
+	//a.Use(logger.New())
 	//a.Use(requestid.New())
-	a.Use(pprof.New())
+	//a.Use(pprof.New())
 	// Fiber endpoints configuration
 	a.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusOK).SendString(a.Config().AppName)
