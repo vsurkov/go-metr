@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/vsurkov/go-metr/internal/event"
-	"github.com/vsurkov/go-metr/internal/rabbitmq"
+	"github.com/vsurkov/go-metr/internal/app/event"
+	rabbitmq2 "github.com/vsurkov/go-metr/internal/platform/rabbitmq"
 	"log"
 	"time"
 )
@@ -55,7 +55,7 @@ func ReceiveEventHandler(ctx *fiber.Ctx) error {
 	body.Body = msg
 
 	// Публикация в очередь
-	err = rabbitmq.PublishEvent(app.RB, &rabbitmq.RabbitMsg{
+	err = rabbitmq2.PublishEvent(app.RB, &rabbitmq2.RabbitMsg{
 		Message: body,
 	})
 	//err = app.RB.Buffer.BuffWrite(app.RB.Buffer, body, app.RB)

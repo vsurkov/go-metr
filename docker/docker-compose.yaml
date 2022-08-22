@@ -4,14 +4,14 @@ services:
   clickhouse-server:
     image: yandex/clickhouse-server
     labels:
-      NAME: "clickhouse-server"
+      NAME: "database-server"
     ports:
       - "8123:8123"
       - "9000:9000"
       - "9009:9009"
     volumes:
-      - ./clickhouse/db/ch_data:/var/lib/clickhouse/
-      - ./clickhouse/db/ch_logs:/var/log/clickhouse-server/
+      - ./database/database/ch_data:/var/lib/database/
+      - ./database/database/ch_logs:/var/log/database-server/
     ulimits:
       nproc: 65535
       nofile:
@@ -20,7 +20,7 @@ services:
   clickhouse-client:
     image: yandex/clickhouse-client
     labels:
-      NAME: "clickhouse-client"
+      NAME: "database-client"
     command: ['--host', 'server']
 
   rabbit1:
