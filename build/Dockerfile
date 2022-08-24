@@ -7,6 +7,7 @@ ENV CGO_ENABLED 0
 ENV GOPATH /go
 ENV GOCACHE /go-build
 ARG PRODUCT_NAME
+ARG PRODUCT_VER
 
 COPY go.mod go.sum ./cmd/$PRODUCT_NAME/ ./internal/ ./
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
@@ -16,7 +17,7 @@ COPY . .
 
 RUN --mount=type=cache,target=/go/pkg/mod/cache \
     --mount=type=cache,target=/go-build \
-    go build -o bin/$PRODUCT_NAME .
+    go build -ldflags="-X 'main.Version=$PRODUCT_VER'" -o bin/$PRODUCT_NAME .
 
 CMD ["/code/bin/$PRODUCT_NAME"]
 

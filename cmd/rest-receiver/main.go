@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	app instance.Instance
+	app     instance.Instance
+	Version string
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		Port:     viper.GetInt("server.port"),
 		Name:     viper.GetString("server.name"),
 		FullName: viper.GetString("server.full_name"),
-		Version:  "0.0.1",
+		Version:  Version,
 	}
 	err := config.Validate()
 	if err != nil {
@@ -102,7 +103,7 @@ func main() {
 
 	// Fiber configuration
 	a := fiber.New(fiber.Config{
-		AppName: fmt.Sprintf("go-metr v %v, app %v", app.Config.Version, app.Config.FullName),
+		AppName: fmt.Sprintf("go-metr %v v%v", app.Config.FullName, app.Config.Version),
 	})
 
 	// Fiber middleware configuration
