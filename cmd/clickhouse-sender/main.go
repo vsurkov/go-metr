@@ -21,12 +21,6 @@ var app instance.Instance
 
 func main() {
 	configureParams() // Configure viper params and config variables
-	err := viper.ReadInConfig()
-	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		helpers.FailOnError(err, "can't find config file")
-	} else {
-		helpers.FailOnError(err, "config file was found but another error was produced")
-	}
 
 	config := instance.Config{
 		Port:     viper.GetInt("server.port"),
@@ -34,7 +28,7 @@ func main() {
 		FullName: viper.GetString("server.full_name"),
 		Version:  "0.0.1",
 	}
-	err = config.Validate()
+	err := config.Validate()
 	if err != nil {
 		helpers.FailOnError(err, "application config is not valid")
 	}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/spf13/viper"
+	"github.com/vsurkov/go-metr/internal/common/helpers"
+	"log"
 	"strings"
 )
 
@@ -12,6 +14,18 @@ func configureParams() {
 	viper.AddConfigPath(".")                            // optionally look for config in the working directory
 	viper.SetConfigName("config")                       // Register config file name (no extension)
 	viper.SetConfigType("yaml")                         // Look for specific type
+
+	err := viper.ReadInConfig()
+	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		log.Println("can't find config.yml file, starting with default settings \n" +
+			"config should be placed into:\n" +
+			"'./config/' or '.' path's")
+	} else {
+		helpers.FailOnError(err, "config file was found but another error was produced")
+	}
+
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
 
 	viper.SetDefault("server.port", "3000")
 	viper.SetDefault("server.full_name", "rest-application")
@@ -33,15 +47,12 @@ func configureParams() {
 	viper.SetDefault("db.max_idle_conns", "5")
 	viper.SetDefault("db.conn_max_lifetime", "time.Hour")
 
-	viper.SetDefault("rabbit.host", "localhost")
-	viper.SetDefault("rabbit.port", "5672")
-	viper.SetDefault("rabbit.user", "rabbitmq")
-	viper.SetDefault("rabbit.password", "rabbitmq")
-	viper.SetDefault("rabbit.exchange", "exchange")
-	viper.SetDefault("rabbit.exchange_type", "direct")
-	viper.SetDefault("rabbit.binding_key", "key")
-	viper.SetDefault("rabbit.consumer_tag", "simple-consumer")
-
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
+	viper.SetDefault("rabbitmq.host", "localhost")
+	viper.SetDefault("rabbitmq.port", "5672")
+	viper.SetDefault("rabbitmq.user", "rabbitmq")
+	viper.SetDefault("rabbitmq.password", "rabbitmq")
+	viper.SetDefault("rabbitmq.exchange", "exchange")
+	viper.SetDefault("rabbitmq.exchange_type", "direct")
+	viper.SetDefault("rabbitmq.binding_key", "key")
+	viper.SetDefault("rabbitmq.consumer_tag", "simple-consumer")
 }
