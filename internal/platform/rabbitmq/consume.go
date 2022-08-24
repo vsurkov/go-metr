@@ -113,12 +113,6 @@ func handle(deliveries <-chan amqp.Delivery, done chan error, db database.Databa
 		// Working with handled message, save to database
 		var msg event.Event
 		msg = *msg.Unmarshal(d.Body)
-		//err := database.Write(msg)
-		//if err != nil {
-
-		//	log.Printf("Error on writing Event to database: %v\n", err)
-		//}
-
 		err := db.Buffer.BuffWrite(db.Buffer, &msg, db)
 		if err != nil {
 			log.Printf("Error on writing batch of Event to database: %v\n", err)

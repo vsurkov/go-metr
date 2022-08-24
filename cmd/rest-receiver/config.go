@@ -1,138 +1,47 @@
 package main
 
-//
-//import (
-//	"errors"
-//	"os"
-//	"strings"
-//	"time"
-//
-//	"github.com/spf13/pflag"
-//	"github.com/spf13/viper"
-//
-//	"github.com/sagikazarmark/modern-go-application/internal/platform/database"
-//)
-//
-//// configuration holds any kind of configuration that comes from the outside world and
-//// is necessary for running the application.
-//type configuration struct {
-//	// Log configuration
-//	//Log log.Config
-//	//
-//	//
-//
-//	// App configuration
-//	App appConfig
-//
-//	// Database connection information
-//	Database database.Config
-//}
-//
-//// Process post-processes configuration after loading it.
-//func (configuration) Process() error {
-//	return nil
-//}
-//
-//// Validate validates the configuration.
-//func (c configuration) Validate() error {
-//	if c.Telemetry.URI == "" {
-//		return errors.New("telemetry http server address is required")
-//	}
-//
-//	if err := c.App.Validate(); err != nil {
-//		return err
-//	}
-//
-//	if err := c.Database.Validate(); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//// appConfig represents the application related configuration.
-//type appConfig struct {
-//	// HTTP server address
-//	// nolint: golint, stylecheck
-//	HttpAddr string
-//
-//	// GRPC server address
-//	GrpcAddr string
-//
-//	// Storage is the storage backend of the application
-//	Storage string
-//}
-//
-//// Validate validates the configuration.
-//func (c appConfig) Validate() error {
-//	if c.HttpAddr == "" {
-//		return errors.New("http app server address is required")
-//	}
-//
-//	if c.GrpcAddr == "" {
-//		return errors.New("grpc app server address is required")
-//	}
-//
-//	if c.Storage != "inmemory" && c.Storage != "database" {
-//		return errors.New("app storage must be inmemory or database")
-//	}
-//
-//	return nil
-//}
-//
-//// configure configures some defaults in the Viper instance.
-//func configure(v *viper.Viper, f *pflag.FlagSet) {
-//	// Viper settings
-//	v.AddConfigPath(".")
-//	v.AddConfigPath("$CONFIG_DIR/")
-//
-//	// Environment variable settings
-//	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-//	v.AllowEmptyEnv(true)
-//	v.AutomaticEnv()
-//
-//	// Global configuration
-//	v.SetDefault("shutdownTimeout", 15*time.Second)
-//	if _, ok := os.LookupEnv("NO_COLOR"); ok {
-//		v.SetDefault("no_color", true)
-//	}
-//
-//	// Log configuration
-//	v.SetDefault("log.format", "json")
-//	v.SetDefault("log.level", "info")
-//	v.RegisterAlias("log.noColor", "no_color")
-//
-//	// Telemetry configuration
-//	f.String("telemetry-addr", ":10000", "Telemetry HTTP server address")
-//	_ = v.BindPFlag("telemetry.addr", f.Lookup("telemetry-addr"))
-//	v.SetDefault("telemetry.addr", ":10000")
-//
-//	// OpenCensus configuration
-//	v.SetDefault("opencensus.exporter.enabled", false)
-//	_ = v.BindEnv("opencensus.exporter.address")
-//	_ = v.BindEnv("opencensus.exporter.insecure")
-//	_ = v.BindEnv("opencensus.exporter.reconnectPeriod")
-//	v.SetDefault("opencensus.trace.sampling.sampler", "never")
-//	v.SetDefault("opencensus.prometheus.enabled", false)
-//
-//	// App configuration
-//	f.String("http-addr", ":8000", "App HTTP server address")
-//	_ = v.BindPFlag("app.httpAddr", f.Lookup("http-addr"))
-//	v.SetDefault("app.httpAddr", ":8000")
-//
-//	f.String("grpc-addr", ":8001", "App GRPC server address")
-//	_ = v.BindPFlag("app.grpcAddr", f.Lookup("grpc-addr"))
-//	v.SetDefault("app.grpcAddr", ":8001")
-//
-//	v.SetDefault("app.storage", "inmemory")
-//
-//	// Database configuration
-//	_ = v.BindEnv("database.host")
-//	v.SetDefault("database.port", 3306)
-//	_ = v.BindEnv("database.user")
-//	_ = v.BindEnv("database.pass")
-//	_ = v.BindEnv("database.name")
-//	v.SetDefault("database.params", map[string]string{
-//		"collation": "utf8mb4_general_ci",
-//	})
-//}
+import (
+	"github.com/spf13/viper"
+	"strings"
+)
+
+func configureParams() {
+
+	viper.AddConfigPath("../../configs/rest-receiver/") //path from config to look config, madness
+	viper.AddConfigPath("./config/")                    // path to look for the config file in
+	viper.AddConfigPath(".")                            // optionally look for config in the working directory
+	viper.SetConfigName("config")                       // Register config file name (no extension)
+	viper.SetConfigType("yaml")                         // Look for specific type
+
+	viper.SetDefault("server.port", "3000")
+	viper.SetDefault("server.full_name", "rest-application")
+	viper.SetDefault("server.name", "rncb")
+	viper.SetDefault("server.logging", "false")
+	viper.SetDefault("server.enable_profiling", "false")
+	viper.SetDefault("server.enable_request_id", "false")
+	viper.SetDefault("server.config_path", "./configs/")
+	//viper.SetDefault("server.buffer_size", "100")
+
+	viper.SetDefault("db.host", "localhost")
+	viper.SetDefault("db.port", "9000")
+	viper.SetDefault("db.default_database", "default")
+	viper.SetDefault("db.user", "default")
+	viper.SetDefault("db.password", "")
+	viper.SetDefault("db.debug", "false")
+	viper.SetDefault("db.dial_timeout", "time.Second")
+	viper.SetDefault("db.max_open_conns", "10")
+	viper.SetDefault("db.max_idle_conns", "5")
+	viper.SetDefault("db.conn_max_lifetime", "time.Hour")
+
+	viper.SetDefault("rabbit.host", "localhost")
+	viper.SetDefault("rabbit.port", "5672")
+	viper.SetDefault("rabbit.user", "rabbitmq")
+	viper.SetDefault("rabbit.password", "rabbitmq")
+	viper.SetDefault("rabbit.exchange", "exchange")
+	viper.SetDefault("rabbit.exchange_type", "direct")
+	viper.SetDefault("rabbit.binding_key", "key")
+	viper.SetDefault("rabbit.consumer_tag", "simple-consumer")
+
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+}

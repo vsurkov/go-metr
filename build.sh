@@ -1,6 +1,8 @@
 #Заметки на полях для сборки и запуска
 
 #Сборка бэкенда
-docker build -t go-metr-receiver --build-arg PRODUCT_NAME=rest-receiver -f build/Dockerfile .
+docker build -t surkovvs/go-metr-receiver --build-arg PRODUCT_NAME=rest-receiver -f build/Dockerfile .
+#docker push surkovvs/go-metr-rest-receiver
 #Сборка обработчиков
-docker build -t go-metr-sender --build-arg PRODUCT_NAME=clickhouse-sender -f build/Dockerfile .
+docker build -t surkovvs/go-metr-sender --build-arg PRODUCT_NAME=clickhouse-sender -f build/Dockerfile .
+#docker push surkovvs/go-metr-sender

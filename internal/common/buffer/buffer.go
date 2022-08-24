@@ -31,7 +31,6 @@ func (b *Buffer) BuffWrite(bf *Buffer, msg *event.Event, bw BufferedWriter) erro
 
 		bf.mux.Lock()
 		err := bw.WriteBatch(bf.Buffer)
-		//err := database.WriteBatch(buffer)
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/vsurkov/go-metr/internal/app/event"
@@ -18,26 +17,26 @@ type Database struct {
 	Buffer *buffer.Buffer
 }
 
-func (db Database) Write(msg *event.Event) error {
-	m := *msg
-	insertQuery := fmt.Sprintf(`INSERT INTO events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent) 
-		VALUES ('%v', '%v','%v','%v','%v','%v','%v','%v')`,
-		m.Timestamp,
-		m.MessageID,
-		m.SystemId,
-		m.SessionId,
-		m.TotalLoading,
-		m.DomLoading,
-		m.Uri,
-		m.UserAgent)
-
-	err := db.Conn.Exec(db.Ctx, insertQuery)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//func (db Database) Write(msg *event.Event) error {
+//	m := *msg
+//	insertQuery := fmt.Sprintf(`INSERT INTO events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)
+//		VALUES ('%v', '%v','%v','%v','%v','%v','%v','%v')`,
+//		m.Timestamp,
+//		m.MessageID,
+//		m.SystemId,
+//		m.SessionId,
+//		m.TotalLoading,
+//		m.DomLoading,
+//		m.Uri,
+//		m.UserAgent)
+//
+//	err := db.Conn.Exec(db.Ctx, insertQuery)
+//
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func (db Database) WriteBatch(mss []event.Event) error {
 	batch, err := db.Conn.PrepareBatch(db.Ctx, "INSERT INTO events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
@@ -60,7 +59,6 @@ func (db Database) WriteBatch(mss []event.Event) error {
 		}
 	}
 	return batch.Send()
-
 }
 
 func (db Database) NewConnection(c Config) (*Database, error) {
