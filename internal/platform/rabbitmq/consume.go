@@ -21,7 +21,7 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 	log.Printf("dialing %q", cfg.URI())
 	c.conn, err = amqp.Dial(cfg.URI())
 	if err != nil {
-		return nil, fmt.Errorf("Dial: %s", err)
+		return nil, fmt.Errorf("dial: %s", err)
 	}
 
 	go func() {
@@ -44,7 +44,7 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		false,            // noWait
 		nil,              // arguments
 	); err != nil {
-		return nil, fmt.Errorf("Exchange Declare: %s", err)
+		return nil, fmt.Errorf("exchange Declare: %s", err)
 	}
 
 	log.Printf("declared Exchange, declaring Queue %q", queueName)
@@ -57,7 +57,7 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		nil,       // arguments
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Queue Declare: %s", err)
+		return nil, fmt.Errorf("queue Declare: %s", err)
 	}
 
 	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
@@ -70,10 +70,10 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		false,          // noWait
 		nil,            // arguments
 	); err != nil {
-		return nil, fmt.Errorf("Queue Bind: %s", err)
+		return nil, fmt.Errorf("queue bind: %s", err)
 	}
 
-	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
+	log.Printf("queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
 	deliveries, err := c.channel.Consume(
 		queue.Name, // name
 		c.tag,      // consumerTag,
@@ -84,7 +84,7 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		nil,        // arguments
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Queue Consume: %s", err)
+		return nil, fmt.Errorf("queue Consume: %s", err)
 	}
 
 	go handle(deliveries, c.done, db)
@@ -95,7 +95,7 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 func (c *Consumer) Shutdown() error {
 	// will close() the deliveries channel
 	if err := c.channel.Cancel(c.tag, true); err != nil {
-		return fmt.Errorf("Consumer cancel failed: %s", err)
+		return fmt.Errorf("consumer cancel failed: %s", err)
 	}
 
 	if err := c.conn.Close(); err != nil {
@@ -115,10 +115,13 @@ func handle(deliveries <-chan amqp.Delivery, done chan error, db database.Databa
 		msg = *msg.Unmarshal(d.Body)
 		err := db.Buffer.BuffWrite(db.Buffer, &msg, db)
 		if err != nil {
-			log.Printf("Error on writing batch of Event to database: %v\n", err)
+			log.Printf("error on writing batch of Event to database: %v\n", err)
 		}
 		//buffWrite(msg)
-		d.Ack(false)
+		err = d.Ack(false)
+		if err != nil {
+			log.Printf("error on sending false ack: %v\n", err)
+		}
 	}
 	log.Printf("handle: deliveries channel closed")
 	done <- nil
