@@ -1,11 +1,10 @@
 server:
   port: 3000
   name: rncb
-  full_name: rest-application
+  full_name: rest-application-DEV
   logging: false
   enable_profiling: false
   enable_request_id: false
-  config_path: "./configs/"
 #  buffer_size: 100 // not need yet
 
 rabbitmq:

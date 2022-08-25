@@ -1,0 +1,31 @@
+server:
+  port: 3000
+  name: rncb
+  full_name: rest-receiver
+  logging: false
+  enable_profiling: false
+  enable_request_id: false
+#  buffer_size: 100 // not need yet
+
+rabbitmq:
+  host: rabbit1
+  port: 5672
+  user: rabbitmq
+  password: rabbitmq
+  exchange: exchange
+  exchange_type: direct
+  binding_key: key
+  consumer_tag: consumer
+
+
+database:
+  host: clickhouse-server
+  port: 9000
+  default_database: default
+  user: default
+  password: ""
+  debug: false
+  dial_timeout: time.Second
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: time.Hour

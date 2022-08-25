@@ -39,7 +39,7 @@ type Database struct {
 //}
 
 func (db Database) WriteBatch(mss []event.Event) error {
-	batch, err := db.Conn.PrepareBatch(db.Ctx, "INSERT INTO events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
+	batch, err := db.Conn.PrepareBatch(db.Ctx, "INSERT INTO rncb.events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
 	if err != nil {
 		return err
 	}
@@ -98,8 +98,8 @@ func (db Database) NewConnection(c Config) (*Database, error) {
 	}
 
 	err = conn.Exec(ctx, `
-		CREATE TABLE IF NOT EXISTS events (
-			Timestamp timestamp,
+		CREATE TABLE IF NOT EXISTS rncb.events (
+			Timestamp Int64,
 			MessageID UUID,
 			SystemId UUID,
 			SessionId UUID,

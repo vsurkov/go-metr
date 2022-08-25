@@ -1,5 +1,9 @@
 #https://github.com/rongfengliang/clickhouse-docker-compose
 version: "3"
+
+networks:
+  go-metr-network:
+
 services:
   clickhouse-server:
     image: yandex/clickhouse-server
@@ -17,6 +21,8 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+    networks:
+      go-metr-network:
   clickhouse-client:
     image: yandex/clickhouse-client
     labels:
@@ -39,3 +45,29 @@ services:
     volumes:
       - ./rabbitmq/rabbitmq-node-1/data/:/var/lib/rabbitmq
       - ./rabbitmq/rabbitmq-node-1/log/:/var/log/rabbitmq
+    networks:
+      go-metr-network:
+  rest-receiver:
+    image: surkovvs/go-metr-receiver:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./rest-receiver/:/usr/local/bin/config/
+    restart: unless-stopped
+    depends_on:
+      - clickhouse-server
+      - rabbit1
+    networks:
+      go-metr-network:
+  clickhouse-sender:
+    image: surkovvs/go-metr-sender:latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./clickhouse-sender:/usr/local/bin/config/
+    restart: unless-stopped
+    depends_on:
+      - clickhouse-server
+      - rabbit1
+    networks:
+      go-metr-network:

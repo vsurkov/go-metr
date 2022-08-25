@@ -8,7 +8,6 @@ import (
 )
 
 func configureParams() {
-
 	viper.AddConfigPath("../../configs/rest-receiver/") //path from config to look config, madness
 	viper.AddConfigPath("./config/")                    // path to look for the config file in
 	viper.AddConfigPath(".")                            // optionally look for config in the working directory
@@ -18,8 +17,8 @@ func configureParams() {
 	err := viper.ReadInConfig()
 	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 		log.Println("can't find config.yml file, starting with default settings \n" +
-			"config should be placed into:\n" +
-			"'./config/' or '.' path's")
+			"\tconfig should be placed into:\n" +
+			"\t'./config/' or '.' path's")
 	} else {
 		helpers.FailOnError(err, "config file was found but another error was produced")
 	}
@@ -33,19 +32,18 @@ func configureParams() {
 	viper.SetDefault("server.logging", "false")
 	viper.SetDefault("server.enable_profiling", "false")
 	viper.SetDefault("server.enable_request_id", "false")
-	viper.SetDefault("server.config_path", "./configs/")
 	//viper.SetDefault("server.buffer_size", "100")
 
-	viper.SetDefault("db.host", "localhost")
-	viper.SetDefault("db.port", "9000")
-	viper.SetDefault("db.default_database", "default")
-	viper.SetDefault("db.user", "default")
-	viper.SetDefault("db.password", "")
-	viper.SetDefault("db.debug", "false")
-	viper.SetDefault("db.dial_timeout", "time.Second")
-	viper.SetDefault("db.max_open_conns", "10")
-	viper.SetDefault("db.max_idle_conns", "5")
-	viper.SetDefault("db.conn_max_lifetime", "time.Hour")
+	viper.SetDefault("database.host", "localhost")
+	viper.SetDefault("database.port", "9000")
+	viper.SetDefault("database.default_database", "default")
+	viper.SetDefault("database.user", "default")
+	viper.SetDefault("database.password", "")
+	viper.SetDefault("database.debug", "false")
+	viper.SetDefault("database.dial_timeout", "time.Second")
+	viper.SetDefault("database.max_open_conns", "10")
+	viper.SetDefault("database.max_idle_conns", "5")
+	viper.SetDefault("database.conn_max_lifetime", "time.Hour")
 
 	viper.SetDefault("rabbitmq.host", "localhost")
 	viper.SetDefault("rabbitmq.port", "5672")

@@ -51,16 +51,16 @@ func main() {
 
 	// Clickhouse configuration
 	dbConfig := &database.Config{
-		Host:              viper.GetString("db.host"),
-		Port:              viper.GetInt("db.port"),
-		Database:          viper.GetString("db.default_database"),
-		User:              viper.GetString("db.user"),
-		Password:          viper.GetString("db.password"),
-		Debug:             viper.GetBool("db.debug"),
-		DialTimeout:       viper.GetDuration("db.dial_timeout"),
-		MaxOpenConns:      viper.GetInt("db.max_open_conns"),
-		MaxIdleConns:      viper.GetInt("db.max_idle_conns"),
-		ConnMaxLifetime:   viper.GetDuration("conn_max_lifetime"),
+		Host:              viper.GetString("database.host"),
+		Port:              viper.GetInt("database.port"),
+		Database:          viper.GetString("database.default_database"),
+		User:              viper.GetString("database.user"),
+		Password:          viper.GetString("database.password"),
+		Debug:             viper.GetBool("database.debug"),
+		DialTimeout:       viper.GetDuration("database.dial_timeout"),
+		MaxOpenConns:      viper.GetInt("database.max_open_conns"),
+		MaxIdleConns:      viper.GetInt("database.max_idle_conns"),
+		ConnMaxLifetime:   viper.GetDuration("database.conn_max_lifetime"),
 		CompressionMethod: clickhouse.CompressionLZ4,
 	}
 	err = dbConfig.Validate()

@@ -1,4 +1,4 @@
-## syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.4
 FROM --platform=$BUILDPLATFORM golang:1.18-alpine AS builder
 
 WORKDIR /code
@@ -21,23 +21,8 @@ RUN --mount=type=cache,target=/go/pkg/mod/cache \
 
 CMD ["/code/bin/$PRODUCT_NAME"]
 
-FROM builder as dev-envs
-
-RUN <<EOF \
-apk update \
-apk add git \
-EOF
-
-RUN <<EOF \
-addgroup -S docker \
-adduser -S --shell /bin/bash --ingroup docker vscode \
-EOF
-
-# install Docker tools (cli, buildx, compose)
-COPY --from=gloursdocker/docker / /
-
-CMD ["go", "run", "main.go"]
-
 FROM scratch
-COPY --from=builder /code/bin/$PRODUCT_NAME /usr/local/bin/$PRODUCT_NAME
-CMD ["/usr/local/bin/$PRODUCT_NAME"]
+ARG PRODUCT_NAME
+COPY --from=builder /code/bin/$PRODUCT_NAME /usr/local/bin/go-metr
+WORKDIR /usr/local/bin/
+CMD ["/usr/local/bin/go-metr"]

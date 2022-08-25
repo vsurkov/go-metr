@@ -1,11 +1,10 @@
 server:
   port: 4000
   name: rncb
-  full_name: clickhouse-sender
+  full_name: clickhouse-sender-DEV
   logging: false
   enable_profiling: false
   enable_request_id: false
-  config_path: "./configs/"
   buffer_size: 2000
 
 rabbitmq:
