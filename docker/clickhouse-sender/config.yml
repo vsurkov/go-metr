@@ -2,7 +2,9 @@ server:
   port: 4000
   name: rncb
   full_name: clickhouse-sender
-  logging: false
+  log_level: 1
+  pretty_log: true
+  http_logging: false
   enable_profiling: false
   enable_request_id: false
   buffer_size: 2000
@@ -16,7 +18,6 @@ rabbitmq:
   exchange_type: direct
   binding_key: key
   consumer_tag: consumer
-
 
 database:
   host: clickhouse-server

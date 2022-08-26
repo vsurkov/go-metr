@@ -1,9 +1,10 @@
 package main
 
 import (
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/vsurkov/go-metr/internal/common/helpers"
-	"log"
 	"strings"
 )
 
@@ -16,11 +17,18 @@ func configureParams() {
 
 	err := viper.ReadInConfig()
 	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		log.Println("can't find config.yml file, starting with default settings \n" +
+		log.Warn().
+			Str("service", helpers.Core).
+			Str("method", "configureParams").
+			Dict("dict", zerolog.Dict().
+				Str("ConfigFileUsed", viper.ConfigFileUsed()).
+				Err(err),
+			).Msg("can't find config.yml file, starting with default settings \n" +
 			"\tconfig should be placed into:\n" +
 			"\t'./config/' or '.' path's")
+
 	} else {
-		helpers.FailOnError(err, "config file was found but another error was produced")
+		helpers.FailOnError(err, helpers.Core, "config file was found but another error was produced")
 	}
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -29,7 +37,9 @@ func configureParams() {
 	viper.SetDefault("server.port", "3000")
 	viper.SetDefault("server.full_name", "rest-application")
 	viper.SetDefault("server.name", "rncb")
-	viper.SetDefault("server.logging", "false")
+	viper.SetDefault("server.http_logging", "false")
+	viper.SetDefault("server.log_level", 1)
+	viper.SetDefault("server.pretty_log", "true")
 	viper.SetDefault("server.enable_profiling", "false")
 	viper.SetDefault("server.enable_request_id", "false")
 	//viper.SetDefault("server.buffer_size", "100")

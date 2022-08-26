@@ -6,6 +6,7 @@ WORKDIR /code
 ENV CGO_ENABLED 0
 ENV GOPATH /go
 ENV GOCACHE /go-build
+ENV APP_PORT 3000
 ARG PRODUCT_NAME
 ARG PRODUCT_VER
 
@@ -21,8 +22,13 @@ RUN --mount=type=cache,target=/go/pkg/mod/cache \
 
 CMD ["/code/bin/$PRODUCT_NAME"]
 
-FROM scratch
+#FROM scratch
+FROM alpine
+ENV APP_PORT 3000
 ARG PRODUCT_NAME
+
+RUN apk --no-cache add curl
 COPY --from=builder /code/bin/$PRODUCT_NAME /usr/local/bin/go-metr
 WORKDIR /usr/local/bin/
+HEALTHCHECK CMD curl --fail http://localhost:$APP_PORT/status || exit 1
 CMD ["/usr/local/bin/go-metr"]

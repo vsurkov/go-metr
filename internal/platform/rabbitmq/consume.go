@@ -1,11 +1,12 @@
 package rabbitmq
 
 import (
-	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/streadway/amqp"
 	"github.com/vsurkov/go-metr/internal/app/event"
+	"github.com/vsurkov/go-metr/internal/common/helpers"
 	"github.com/vsurkov/go-metr/internal/platform/database"
-	"log"
 )
 
 func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer, error) {
@@ -18,23 +19,64 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 
 	var err error
 
-	log.Printf("dialing %q", cfg.URI())
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "NewConsumer").
+		Dict("dict", zerolog.Dict().
+			Str("URI", cfg.URI()).
+			Str("User", cfg.User),
+		).Msg("dialing")
+
 	c.conn, err = amqp.Dial(cfg.URI())
 	if err != nil {
-		return nil, fmt.Errorf("dial: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("URI", cfg.URI()).
+				Err(err),
+			).Msg("AMQP dialling error")
+		return nil, err
 	}
 
 	go func() {
-		fmt.Printf("closing: %s", <-c.conn.NotifyClose(make(chan *amqp.Error)))
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("URI", cfg.URI()).
+				Err(<-c.conn.NotifyClose(make(chan *amqp.Error))),
+			).Msg("closing connection")
 	}()
 
-	log.Printf("got Connection, getting Channel")
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "NewConsumer").
+		Dict("dict", zerolog.Dict().
+			Str("URI", cfg.URI()),
+		).Msg("connected, getting Channel")
+
 	c.channel, err = c.conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("Channel: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("URI", cfg.URI()).
+				Err(err),
+			).Msg("open channel error")
+		return nil, err
 	}
 
-	log.Printf("got Channel, declaring Exchange (%q)", cfg.Exchange)
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "NewConsumer").
+		Dict("dict", zerolog.Dict().
+			Str("URI", cfg.URI()).
+			Str("Exchange", cfg.Exchange).
+			Str("ExchangeType", cfg.ExchangeType),
+		).Msg("channel upped, declaring Exchange")
+
 	if err = c.channel.ExchangeDeclare(
 		cfg.Exchange,     // name of the exchange
 		cfg.ExchangeType, // type
@@ -44,10 +86,26 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		false,            // noWait
 		nil,              // arguments
 	); err != nil {
-		return nil, fmt.Errorf("exchange Declare: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("URI", cfg.URI()).
+				Str("Exchange", cfg.Exchange).
+				Str("ExchangeType", cfg.ExchangeType).
+				Err(err),
+			).Msg("exchange declare error")
+		return nil, err
 	}
 
-	log.Printf("declared Exchange, declaring Queue %q", queueName)
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "NewConsumer").
+		Dict("dict", zerolog.Dict().
+			Str("URI", cfg.URI()).
+			Str("Queue", queueName),
+		).Msg("declared Exchange, declaring Queue")
+
 	queue, err := c.channel.QueueDeclare(
 		queueName, // name of the queue
 		true,      // durable
@@ -57,11 +115,26 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		nil,       // arguments
 	)
 	if err != nil {
-		return nil, fmt.Errorf("queue Declare: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("URI", cfg.URI()).
+				Str("Queue", cfg.Queue).
+				Err(err),
+			).Msg("queue declare error")
+		return nil, err
 	}
 
-	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
-		queue.Name, queue.Messages, queue.Consumers, cfg.BindingKey)
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "NewConsumer").
+		Dict("dict", zerolog.Dict().
+			Str("Queue", queue.Name).
+			Int("Messages", queue.Messages).
+			Int("Consumers", queue.Consumers).
+			Str("BindingKey", cfg.BindingKey),
+		).Msg("declared Exchange, binding to Exchange")
 
 	if err = c.channel.QueueBind(
 		queue.Name,     // name of the queue
@@ -70,10 +143,26 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		false,          // noWait
 		nil,            // arguments
 	); err != nil {
-		return nil, fmt.Errorf("queue bind: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("Queue", queue.Name).
+				Int("Messages", queue.Messages).
+				Int("Consumers", queue.Consumers).
+				Str("BindingKey", cfg.BindingKey).
+				Err(err),
+			).Msg("binding to Exchange error")
+		return nil, err
 	}
 
-	log.Printf("queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "NewConsumer").
+		Dict("dict", zerolog.Dict().
+			Str("ConsumerTag", c.tag),
+		).Msg("queue bound to Exchange, starting Consumer")
+
 	deliveries, err := c.channel.Consume(
 		queue.Name, // name
 		c.tag,      // consumerTag,
@@ -84,45 +173,104 @@ func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer
 		nil,        // arguments
 	)
 	if err != nil {
-		return nil, fmt.Errorf("queue Consume: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "NewConsumer").
+			Dict("dict", zerolog.Dict().
+				Str("ConsumerTag", c.tag).
+				Err(err),
+			).Msg("starting Consumer error")
+		return nil, err
 	}
 
-	go handle(deliveries, c.done, db)
-
+	go messageStoreHandler(deliveries, c.done, db)
 	return c, nil
 }
 
 func (c *Consumer) Shutdown() error {
 	// will close() the deliveries channel
 	if err := c.channel.Cancel(c.tag, true); err != nil {
-		return fmt.Errorf("consumer cancel failed: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "Shutdown").
+			Dict("dict", zerolog.Dict().
+				Str("ConsumerTag", c.tag).
+				Err(err),
+			).Msg("cancel channel error")
+		return err
 	}
 
 	if err := c.conn.Close(); err != nil {
-		return fmt.Errorf("AMQP connection close error: %s", err)
+		log.Error().
+			Str("service", helpers.Rabbit).
+			Str("method", "Shutdown").
+			Dict("dict", zerolog.Dict().
+				Str("ConsumerTag", c.tag).
+				Err(err),
+			).Msg("close connection error")
+		return err
 	}
 
-	defer log.Printf("AMQP shutdown OK")
+	defer func() {
+		log.Info().
+			Str("service", helpers.Rabbit).
+			Str("method", "Shutdown").
+			Dict("dict", zerolog.Dict().
+				Str("ConsumerTag", c.tag),
+			).Msg("AMQP shutdown OK")
+	}()
 
-	// wait for handle() to exit
+	// wait for messageStoreHandler() to exit
 	return <-c.done
 }
 
-func handle(deliveries <-chan amqp.Delivery, done chan error, db database.Database) {
+func messageStoreHandler(deliveries <-chan amqp.Delivery, done chan error, db database.Database) {
 	for d := range deliveries {
 		// Working with handled message, save to database
 		var msg event.Event
 		msg = *msg.Unmarshal(d.Body)
+
 		err := db.Buffer.BuffWrite(db.Buffer, &msg, db)
 		if err != nil {
-			log.Printf("error on writing batch of Event to database: %v\n", err)
+			err = d.Nack(false, true)
+			if err != nil {
+				log.Error().
+					Str("service", helpers.Rabbit).
+					Str("method", "messageStoreHandler").
+					Dict("dict", zerolog.Dict().
+						Err(err),
+					).Msg("error on sending Nack")
+			}
+			log.Info().
+				Str("service", helpers.Rabbit).
+				Str("method", "messageStoreHandler").
+				Dict("dict", zerolog.Dict().
+					Err(err),
+				).Msg("Nack sent successfully")
+			helpers.FailOnError(err, helpers.Clickhouse, "error on writing batch of Events to database")
 		}
-		//buffWrite(msg)
+
+		log.Debug().
+			Str("service", helpers.Rabbit).
+			Str("method", "messageStoreHandler").
+			Dict("dict", zerolog.Dict().
+				Str("MessageId", msg.MessageID.String()).
+				Str("Body", string(msg.Body)),
+			).Msg("message written to buffer")
+
 		err = d.Ack(false)
 		if err != nil {
-			log.Printf("error on sending false ack: %v\n", err)
+			log.Error().
+				Str("service", helpers.Rabbit).
+				Str("method", "messageStoreHandler").
+				Dict("dict", zerolog.Dict().
+					Err(err),
+				).Msg("error on sending Ack")
 		}
 	}
-	log.Printf("handle: deliveries channel closed")
+	log.Info().
+		Str("service", helpers.Rabbit).
+		Str("method", "messageStoreHandler").
+		Dict("dict", zerolog.Dict()).Msg("AMQP deliveries channel closed")
 	done <- nil
 }

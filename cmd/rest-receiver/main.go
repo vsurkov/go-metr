@@ -8,12 +8,14 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/vsurkov/go-metr/internal/app/instance"
 	"github.com/vsurkov/go-metr/internal/common/helpers"
 	"github.com/vsurkov/go-metr/internal/platform/database"
 	rabbitmq2 "github.com/vsurkov/go-metr/internal/platform/rabbitmq"
-	"log"
+	"os"
 )
 
 var (
@@ -23,6 +25,14 @@ var (
 
 func main() {
 	configureParams() // Configure viper params and config variables
+	// Logger configure
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.SetGlobalLevel(zerolog.Level(viper.GetInt("server.log_level")))
+
+	if viper.GetBool("server.pretty_log") {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}) // Pretty console
+	}
+	log.Info().Msg("logger enabled successfully")
 
 	config := instance.Config{
 		Port:     viper.GetInt("server.port"),
@@ -32,12 +42,16 @@ func main() {
 	}
 	err := config.Validate()
 	if err != nil {
-		helpers.FailOnError(err, "application config is not valid")
+		helpers.FailOnError(err, helpers.Core, "application config is not valid")
 	}
 
 	//viper.WatchConfig()
 	//viper.OnConfigChange(func(e fsnotify.Event) {
-	//	fmt.Println("Config file changed:", e.Name)
+	//	log.Info().
+	//		//Int("level", viper.GetInt("server.log_level")).
+	//		Str("Config", e.Name).
+	//		Msg("changed logging")
+	//	zerolog.SetGlobalLevel(zerolog.Level(int8(viper.GetInt("server.log_level"))))
 	//})
 
 	//Application configuration
@@ -64,17 +78,17 @@ func main() {
 	}
 	err = dbConfig.Validate()
 	if err != nil {
-		helpers.FailOnError(err, "database config is not valid")
+		helpers.FailOnError(err, helpers.Clickhouse, "database config is not valid")
 	}
 
 	clickhouseDB, err := new(database.Database).NewConnection(*dbConfig)
 	if err != nil {
-		log.Fatal(err.Error())
+		helpers.FailOnError(err, helpers.Clickhouse, "can't create newConnection to DB")
 	}
 	app.DB = *clickhouseDB
 
 	app.KnownSystems, err = app.DB.GetSystems()
-	helpers.FailOnError(err, "can't receive systems from default.systems")
+	helpers.FailOnError(err, helpers.Clickhouse, "can't receive systems from default.systems")
 
 	// RabbitMQ configuration
 	app.RB.Config = &rabbitmq2.Config{
@@ -90,11 +104,11 @@ func main() {
 	}
 	err = app.RB.Config.Validate()
 	if err != nil {
-		helpers.FailOnError(err, "RabbitMQ config is not valid")
+		helpers.FailOnError(err, helpers.Rabbit, "RabbitMQ config is not valid")
 	}
-	err = rabbitmq2.InitProducer(&app.RB)
+	err = rabbitmq2.NewProducer(&app.RB)
 	if err != nil {
-		helpers.FailOnError(err, "can' initialise RabbitMQ")
+		helpers.FailOnError(err, helpers.Rabbit, "can't initialise RabbitMQ producer")
 	}
 
 	// Батчи для рэббита в лоб не сделать, можно использовать потом для передачи в массива в бинарной последовательности
@@ -107,7 +121,7 @@ func main() {
 	})
 
 	// Fiber middleware configuration
-	if viper.GetBool("server.logging") {
+	if viper.GetBool("server.http_logging") {
 		a.Use(logger.New())
 	}
 	if viper.GetBool("server.enable_request_id") {
@@ -129,5 +143,5 @@ func main() {
 	})
 
 	// Run Fiber server on port
-	log.Fatal(a.Listen(fmt.Sprintf(":%v", app.Config.Port)))
+	helpers.FailOnError(a.Listen(fmt.Sprintf(":%v", app.Config.Port)), helpers.Fiber, "can't run Fiber")
 }

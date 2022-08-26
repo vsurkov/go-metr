@@ -1,11 +1,14 @@
 package helpers
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 )
 
-func FailOnError(err error, msg string) {
+func FailOnError(err error, service string, msg string) {
 	if err != nil {
-		log.Fatalf("%v: %v", msg, err)
+		log.Fatal().
+			Err(err).
+			Str("service", service).
+			Msgf("%s", msg)
 	}
 }

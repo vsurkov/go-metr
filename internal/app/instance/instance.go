@@ -20,8 +20,5 @@ func (i Instance) NewInstance(c Config) *Instance {
 			FullName: c.FullName,
 			Version:  c.Version,
 		},
-		//DB:           database.Database{},
-		//RB:           rabbitmq.Rabbit{},
-		//KnownSystems: nil,
 	}
 }

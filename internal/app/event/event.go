@@ -3,7 +3,9 @@ package event
 import (
 	json2 "encoding/json"
 	"github.com/google/uuid"
-	"log"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/vsurkov/go-metr/internal/common/helpers"
 )
 
 type Event struct {
@@ -22,7 +24,16 @@ func (evt Event) Unmarshal(b []byte) *Event {
 	msg := new(Event)
 	err := json2.Unmarshal(b, &msg)
 	if err != nil {
-		log.Printf("Unmarshalling error, %v\n", err)
+		log.Error().
+			Str("service", helpers.Core).
+			Str("method", "Unmarshal").
+			Dict("dict", zerolog.Dict().
+				Str("SessionID", "").
+				Str("Action", "unmarshalling").
+				Str("MessageID", "").
+				Str("Raw", string(b)).
+				Err(err),
+			).Msg("unmarshalling error")
 	}
 	return msg
 }
