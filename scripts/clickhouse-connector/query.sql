@@ -1,5 +1,7 @@
 -- Создание таблицы событий
-CREATE TABLE IF NOT EXISTS events (
+CREATE DATABASE IF NOT EXISTS rncb;
+
+CREATE TABLE IF NOT EXISTS rncb.events(
                                       Timestamp Int64,
                                       MessageID UUID,
                                       SystemId UUID,

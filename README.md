@@ -8,3 +8,6 @@ Web-интерфейс будет доступен по адресу http://loca
 
 #### RabbitMQ
 Web-интерфейс будет доступен по адресу http://localhost:15672
+
+#### TODO
+1. Добавить балансировщик для clickhouse https://www.chproxy.org
