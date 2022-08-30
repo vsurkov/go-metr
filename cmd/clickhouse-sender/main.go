@@ -11,12 +11,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"github.com/vsurkov/go-metr/internal/app/event"
 	"github.com/vsurkov/go-metr/internal/app/instance"
-	"github.com/vsurkov/go-metr/internal/common/buffer"
+	"github.com/vsurkov/go-metr/internal/common/batch"
 	"github.com/vsurkov/go-metr/internal/common/helpers"
 	"github.com/vsurkov/go-metr/internal/platform/database"
 	rabbitmq2 "github.com/vsurkov/go-metr/internal/platform/rabbitmq"
 	"os"
+	"time"
 )
 
 var (
@@ -95,8 +97,13 @@ func main() {
 	}
 	app.DB = *clickhouseDB
 
-	b := new(buffer.Buffer)
-	app.DB.Buffer = b.NewBuffer(viper.GetInt("server.buffer_size"))
+	b := new(batch.Batch)
+	values := make(chan event.Event)
+	maxItems := viper.GetInt("database.batch_max_items")
+	maxTimeout := time.Duration(viper.GetInt64("database.batch_max_timeout_mills"))
+	app.DB.Batch = b.NewBatch(values, maxItems, maxTimeout)
+	app.DB.Batch.Ch = make(chan string)
+	go ListenChan()
 
 	// RabbitMQ configuration
 	app.RB.Config = &rabbitmq2.Config{
@@ -120,7 +127,7 @@ func main() {
 	}
 
 	//	TODO сделать множественные очереди
-	cons, err := rabbitmq2.NewConsumer(app.RB.Config, app.RB.Config.Queue, app.DB)
+	cons, err := rabbitmq2.NewConsumer(app.RB.Config, app.RB.Config.Queue, &app.DB)
 	if err != nil {
 		helpers.FailOnError(err, helpers.Rabbit, "can't create newConsumer")
 	}
@@ -159,4 +166,51 @@ func main() {
 
 	// Run Fiber server on port
 	helpers.FailOnError(a.Listen(fmt.Sprintf(":%v", app.Config.Port)), helpers.Fiber, "can't run Fiber")
+}
+
+func ListenChan() {
+	start := time.Now()
+	batches := BatchStrings(app.DB.Batch.Ch, 5, 10000*time.Millisecond)
+	for {
+		for b := range batches {
+			fmt.Println(time.Now().Sub(start), b)
+		}
+	}
+}
+
+func BatchStrings(values <-chan string, maxItems int, maxTimeout time.Duration) chan []string {
+	batches := make(chan []string)
+
+	go func() {
+		defer close(batches)
+
+		for keepGoing := true; keepGoing; {
+			var batch []string
+			expire := time.After(maxTimeout)
+			for {
+				select {
+				case value, ok := <-values:
+					if !ok {
+						keepGoing = false
+						goto done
+					}
+
+					batch = append(batch, value)
+					if len(batch) == maxItems {
+						goto done
+					}
+
+				case <-expire:
+					goto done
+				}
+			}
+
+		done:
+			if len(batch) > 0 {
+				batches <- batch
+			}
+		}
+	}()
+
+	return batches
 }

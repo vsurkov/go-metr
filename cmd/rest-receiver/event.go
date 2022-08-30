@@ -71,7 +71,7 @@ func ReceiveEventHandler(ctx *fiber.Ctx) error {
 	err = rabbitmq2.PublishEvent(app.RB, &rabbitmq2.RabbitMsg{
 		Message: body,
 	})
-	//err = app.RB.Buffer.BuffWrite(app.RB.Buffer, body, app.RB)
+	//err = app.RB.Batch.BatchWrite(app.RB.Batch, body, app.RB)
 
 	if err != nil {
 		log.Error().

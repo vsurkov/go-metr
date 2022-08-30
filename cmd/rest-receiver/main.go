@@ -112,8 +112,8 @@ func main() {
 	}
 
 	// Батчи для рэббита в лоб не сделать, можно использовать потом для передачи в массива в бинарной последовательности
-	//b := new(buffer.Buffer)
-	//app.RB.Buffer = b.NewBuffer(*bufferSize)
+	//b := new(batch.Batch)
+	//app.RB.Batch = b.NewBatch(*bufferSize)
 
 	// Fiber configuration
 	a := fiber.New(fiber.Config{

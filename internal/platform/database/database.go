@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/vsurkov/go-metr/internal/app/event"
-	"github.com/vsurkov/go-metr/internal/common/buffer"
+	"github.com/vsurkov/go-metr/internal/common/batch"
 	"github.com/vsurkov/go-metr/internal/common/helpers"
 )
 
@@ -15,10 +15,10 @@ type Database struct {
 	Config Config
 	Conn   driver.Conn
 	Ctx    context.Context
-	Buffer *buffer.Buffer
+	Batch  *batch.Batch
 }
 
-func (db Database) WriteBatch(mss []event.Event) error {
+func (db Database) Write(mss []event.Event) error {
 	batch, err := db.Conn.PrepareBatch(db.Ctx, "INSERT INTO rncb.events (Timestamp, MessageID, SystemId, SessionId, TotalLoading, DomLoading, Uri, UserAgent)")
 	if err != nil {
 		return err

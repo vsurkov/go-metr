@@ -9,7 +9,7 @@ import (
 	"github.com/vsurkov/go-metr/internal/platform/database"
 )
 
-func NewConsumer(cfg *Config, queueName string, db database.Database) (*Consumer, error) {
+func NewConsumer(cfg *Config, queueName string, db *database.Database) (*Consumer, error) {
 	c := &Consumer{
 		conn:    nil,
 		channel: nil,
@@ -224,13 +224,13 @@ func (c *Consumer) Shutdown() error {
 	return <-c.done
 }
 
-func messageStoreHandler(deliveries <-chan amqp.Delivery, done chan error, db database.Database) {
+func messageStoreHandler(deliveries <-chan amqp.Delivery, done chan error, db *database.Database) {
 	for d := range deliveries {
 		// Working with handled message, save to database
 		var msg event.Event
 		msg = *msg.Unmarshal(d.Body)
 
-		err := db.Buffer.BuffWrite(db.Buffer, &msg, db)
+		err := db.Batch.Write(&msg)
 		if err != nil {
 			err = d.Nack(false, true)
 			if err != nil {

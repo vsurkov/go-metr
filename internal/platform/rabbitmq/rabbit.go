@@ -3,12 +3,12 @@ package rabbitmq
 import (
 	"github.com/streadway/amqp"
 	"github.com/vsurkov/go-metr/internal/app/event"
-	"github.com/vsurkov/go-metr/internal/common/buffer"
+	"github.com/vsurkov/go-metr/internal/common/batch"
 )
 
 type Rabbit struct {
 	Config     *Config
-	Buffer     *buffer.Buffer
+	Buffer     *batch.Batch
 	Connection *amqp.Connection
 	Channel    *amqp.Channel
 }

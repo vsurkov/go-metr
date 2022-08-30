@@ -7,7 +7,6 @@ server:
   http_logging: false
   enable_profiling: false
   enable_request_id: false
-#  buffer_size: 100 // not need yet
 
 rabbitmq:
   host: localhost
@@ -18,6 +17,8 @@ rabbitmq:
   exchange_type: direct
   binding_key: key
   consumer_tag: consumer
+  batch_max_items: 2000
+  batch_max_timeout_mills: 50
 
 database:
   host: localhost

@@ -41,7 +41,7 @@ func configureParams() {
 	viper.SetDefault("server.pretty_log", "true")
 	viper.SetDefault("server.enable_profiling", "false")
 	viper.SetDefault("server.enable_request_id", "false")
-	viper.SetDefault("server.buffer_size", "1000")
+	viper.SetDefault("server.batch_size", "1000")
 
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", "9000")
