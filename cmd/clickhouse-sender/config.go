@@ -41,7 +41,6 @@ func configureParams() {
 	viper.SetDefault("server.pretty_log", "true")
 	viper.SetDefault("server.enable_profiling", "false")
 	viper.SetDefault("server.enable_request_id", "false")
-	viper.SetDefault("server.batch_size", "1000")
 
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", "9000")
@@ -53,6 +52,8 @@ func configureParams() {
 	viper.SetDefault("database.max_open_conns", "10")
 	viper.SetDefault("database.max_idle_conns", "5")
 	viper.SetDefault("database.conn_max_lifetime", "time.Hour")
+	viper.SetDefault("database.batch_max_items", "1000")
+	viper.SetDefault("database.batch_max_timeout_mills", "500")
 
 	viper.SetDefault("rabbitmq.host", "localhost")
 	viper.SetDefault("rabbitmq.port", "5672")
@@ -62,4 +63,6 @@ func configureParams() {
 	viper.SetDefault("rabbitmq.exchange_type", "direct")
 	viper.SetDefault("rabbitmq.binding_key", "key")
 	viper.SetDefault("rabbitmq.consumer_tag", "simple-consumer")
+	viper.SetDefault("rabbitmq.batch_max_items", "1000")
+	viper.SetDefault("rabbitmq.batch_max_timeout_mills", "500")
 }

@@ -1,7 +1,10 @@
 package batch
 
 import (
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/vsurkov/go-metr/internal/app/event"
+	"github.com/vsurkov/go-metr/internal/common/helpers"
 	"time"
 )
 
@@ -10,48 +13,72 @@ type Writer interface {
 }
 
 type Batch struct {
-	Batches    chan []event.Event
 	MsgChan    chan<- event.Event
 	MaxItems   int
 	MaxTimeout time.Duration
-	Ch         chan string
 }
 
-func (b *Batch) NewBatch(values chan<- event.Event, maxItems int, maxTimeout time.Duration) *Batch {
+func (b *Batch) NewBatchWriter(ch chan event.Event, maxItems int, maxTimeout time.Duration, out Writer) *Batch {
+	go listenAndWrite(&ch, &maxItems, &maxTimeout, out)
 	return &Batch{
-		Batches:    make(chan []event.Event),
-		MsgChan:    values,
+		MsgChan:    ch,
 		MaxItems:   maxItems,
 		MaxTimeout: maxTimeout,
 	}
 }
 
-//func (b *Batch) Write(msg *event.Event) {
-//	b.MsgChan <- *msg
-//}
-
 func (b *Batch) Write(msg *event.Event) error {
-	b.Ch <- msg.MessageID.String()
-	//log.Print(msg.MessageID.String())
-	return nil
+	b.MsgChan <- *msg
+	return nil // TODO добавить обратный канал, возвращающий статус записи в базу для возврата ошибки и отката
 }
 
-func (b *Batch) BatchMessages(values <-chan event.Event) chan []event.Event {
+func listenAndWrite(ch *chan event.Event, maxItems *int, maxTimeout *time.Duration, out Writer) {
+	batches := CollectBatches(ch, maxItems, maxTimeout)
+	for {
+		for b := range batches {
+			log.Info().
+				Str("service", helpers.Batch).
+				Str("method", "listenAndWrite").
+				Dict("dict", zerolog.Dict().
+					Int("Batch size", len(b)).
+					Int("Cap", cap(b)).
+					Int("MaxItems", *maxItems).
+					Dur("MaxTimeout (milliseconds)", *maxTimeout),
+				).Msg("flushed from batch")
+			err := out.Write(b)
+			if err != nil {
+				log.Error().
+					Str("service", helpers.Batch).
+					Str("method", "listenAndWrite").
+					Dict("dict", zerolog.Dict().
+						Int("Batch size", len(b)).
+						Int("Cap", cap(b)).
+						Err(err),
+					).Msg("on writing to Writer")
+			}
+		}
+	}
+}
+
+func CollectBatches(values *chan event.Event, maxItems *int, maxTimeout *time.Duration) chan []event.Event {
+	batches := make(chan []event.Event)
+
 	go func() {
-		//defer close(b.Batches)
+		defer close(batches)
+
 		for keepGoing := true; keepGoing; {
 			var batch []event.Event
-			expire := time.After(b.MaxTimeout)
+			expire := time.After(*maxTimeout)
 			for {
 				select {
-				case value, ok := <-values:
+				case value, ok := <-*values:
 					if !ok {
 						keepGoing = false
 						goto done
 					}
 
 					batch = append(batch, value)
-					if len(batch) == b.MaxItems {
+					if len(batch) == *maxItems {
 						goto done
 					}
 
@@ -62,10 +89,10 @@ func (b *Batch) BatchMessages(values <-chan event.Event) chan []event.Event {
 
 		done:
 			if len(batch) > 0 {
-				b.Batches <- batch
+				batches <- batch
 			}
 		}
 	}()
 
-	return b.Batches
+	return batches
 }

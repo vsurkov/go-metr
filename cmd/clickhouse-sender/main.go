@@ -98,12 +98,10 @@ func main() {
 	app.DB = *clickhouseDB
 
 	b := new(batch.Batch)
-	values := make(chan event.Event)
+	ch := make(chan event.Event)
 	maxItems := viper.GetInt("database.batch_max_items")
 	maxTimeout := time.Duration(viper.GetInt64("database.batch_max_timeout_mills"))
-	app.DB.Batch = b.NewBatch(values, maxItems, maxTimeout)
-	app.DB.Batch.Ch = make(chan string)
-	go ListenChan()
+	app.DB.Batch = b.NewBatchWriter(ch, maxItems, maxTimeout*time.Millisecond, app.DB)
 
 	// RabbitMQ configuration
 	app.RB.Config = &rabbitmq2.Config{
@@ -166,51 +164,4 @@ func main() {
 
 	// Run Fiber server on port
 	helpers.FailOnError(a.Listen(fmt.Sprintf(":%v", app.Config.Port)), helpers.Fiber, "can't run Fiber")
-}
-
-func ListenChan() {
-	start := time.Now()
-	batches := BatchStrings(app.DB.Batch.Ch, 5, 10000*time.Millisecond)
-	for {
-		for b := range batches {
-			fmt.Println(time.Now().Sub(start), b)
-		}
-	}
-}
-
-func BatchStrings(values <-chan string, maxItems int, maxTimeout time.Duration) chan []string {
-	batches := make(chan []string)
-
-	go func() {
-		defer close(batches)
-
-		for keepGoing := true; keepGoing; {
-			var batch []string
-			expire := time.After(maxTimeout)
-			for {
-				select {
-				case value, ok := <-values:
-					if !ok {
-						keepGoing = false
-						goto done
-					}
-
-					batch = append(batch, value)
-					if len(batch) == maxItems {
-						goto done
-					}
-
-				case <-expire:
-					goto done
-				}
-			}
-
-		done:
-			if len(batch) > 0 {
-				batches <- batch
-			}
-		}
-	}()
-
-	return batches
 }

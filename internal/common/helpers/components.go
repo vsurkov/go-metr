@@ -5,4 +5,5 @@ const (
 	Fiber      = "HTTP Server"
 	Rabbit     = "RabbitMQ"
 	Clickhouse = "Clickhouse"
+	Batch      = "Batch"
 )

@@ -17,8 +17,8 @@ rabbitmq:
   exchange_type: direct
   binding_key: key
   consumer_tag: consumer
-  batch_max_items: 2000
-  batch_max_timeout_mills: 50
+  batch_max_items: 2001
+  batch_max_timeout_mills: 701
 
 database:
   host: localhost
@@ -31,5 +31,5 @@ database:
   max_open_conns: 10
   max_idle_conns: 5
   conn_max_lifetime: time.Hour
-  batch_max_items: 2000
-  batch_max_timeout_mills: 50
+  batch_max_items: 5000
+  batch_max_timeout_mills: 300
